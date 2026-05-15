@@ -4,7 +4,7 @@ import { wrapWithMise } from './mise.js';
 
 /**
  * Rebinds agent tool execute functions to use a real Mirage workspace.
- * All commands are wrapped with `mise exec` for tool provisioning.
+ * All shell commands are wrapped with `mise exec` for tool provisioning.
  */
 export function bindToolsToWorkspace(
   tools: ToolSet,
@@ -32,8 +32,11 @@ export function bindToolsToWorkspace(
           if (dir) {
             await workspace.execute(`mkdir -p "${dir}"`);
           }
-          const escaped = args.content.replace(/'/g, "'\\''");
-          await workspace.execute(`cat > "${args.path}" << 'FABSTER_EOF'\n${escaped}\nFABSTER_EOF`);
+          // Use tee with stdin to avoid shell escaping/heredoc issues
+          const encoder = new TextEncoder();
+          await workspace.execute(`tee "${args.path}"`, {
+            stdin: encoder.encode(args.content),
+          });
           return `Written ${args.path}`;
         };
         break;
