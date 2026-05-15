@@ -1,4 +1,4 @@
-import { ToolLoopAgent } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import type { Workspace } from '@struktoai/mirage-core';
 import type { AgentDefinition, TaskDefinition } from '@fabster/core';
 import type { ModelMap } from '../types.js';
@@ -10,7 +10,7 @@ export async function executeTask(
   agentDef: AgentDefinition,
   models: ModelMap,
   workspace: Workspace,
-) {
+): Promise<{ text: string; finishReason: string }> {
   const reasoning = task.reasoning ?? 'medium';
   const model = models[reasoning];
 
@@ -28,13 +28,13 @@ export async function executeTask(
     inputDescription,
   ].join('\n');
 
-  const agent = new ToolLoopAgent({
-    id: agentDef.name,
+  const result = await generateText({
     model,
     tools,
-    instructions: agentDef.instructions,
+    system: agentDef.instructions,
+    prompt,
+    stopWhen: stepCountIs(20),
   });
 
-  const result = await agent.generate({ prompt });
   return result;
 }

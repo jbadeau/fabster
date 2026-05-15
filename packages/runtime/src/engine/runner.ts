@@ -3,7 +3,7 @@ import type { WorkflowDefinition } from '@fabster/core';
 import type { NodeResult, NodeStatus, RunOptions, RunResult } from '../types.js';
 import { extractNodes } from './graph.js';
 import { executeNode } from './node-executor.js';
-import { provisionTools } from './mise.js';
+import { miseExec, provisionTools } from './mise.js';
 import { createBranch, commitChanges } from '../git/branch.js';
 import { createMR } from '../git/mr.js';
 import { checkGates } from '../gates/gate-checker.js';
@@ -70,11 +70,29 @@ export async function runWorkflow(
 
       const logs: string[] = [];
       let status: NodeStatus = 'success';
-      let branch = '';
+      let branch = `fabster/${workflow.name}/${node.id}`;
       let mrUrl: string | undefined;
       let gateResults: import('../types.js').GateResult[] = [];
 
       try {
+        // Check if this node's branch already exists (skip if so)
+        const branchCheck = await miseExec(`git branch --list "${branch}"`, cwd);
+        if (branchCheck.stdout.trim() !== '') {
+          logs.push(`Branch ${branch} already exists — skipping`);
+          const duration = Date.now() - startTime;
+          nodeResults.push({
+            id: node.id,
+            definition: def,
+            status: 'success',
+            branch,
+            gates: [],
+            duration,
+            logs,
+          });
+          previousBranch = branch;
+          continue;
+        }
+
         // Provision tools declared in permissions
         const tools = def.permissions?.tools ?? [];
         if (tools.length > 0) {
