@@ -1,0 +1,35 @@
+{
+  "name": "@fabster/cli",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": {
+    "fabster": "./dist/bin/fabster.js"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@fabster/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "cli"
+  },
+  "dependencies": {
+    "@fabster/core": "0.0.1",
+    "@fabster/runtime": "0.0.1",
+    "@fabster/ui": "0.0.1",
+    "ink": "^7.0.3",
+    "react": "^19.2.6",
+    "tslib": "^2.3.0"
+  }
+}

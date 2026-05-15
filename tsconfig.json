@@ -2,5 +2,21 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/runtime"
+    },
+{
+      "path": "./packages/nx"
+    },
+    {
+      "path": "./packages/cli"
+    },
+    {
+      "path": "./packages/ui"
+    }
+  ]
 }
