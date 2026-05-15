@@ -48,6 +48,20 @@ export async function executeTask(
     system: agentDef.instructions,
     prompt,
     stopWhen: stepCountIs(10),
+    onStepFinish: ({ toolCalls, text, finishReason }) => {
+      if (toolCalls?.length) {
+        for (const tc of toolCalls) {
+          const args = typeof tc.args === 'object' ? JSON.stringify(tc.args).slice(0, 100) : '';
+          console.log(`    [tool] ${tc.toolName} ${args}`);
+        }
+      }
+      if (text) {
+        console.log(`    [text] ${text.slice(0, 120)}${text.length > 120 ? '...' : ''}`);
+      }
+      if (finishReason === 'stop') {
+        console.log(`    [done] Agent finished`);
+      }
+    },
   });
 
   return result;
