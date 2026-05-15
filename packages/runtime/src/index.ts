@@ -9,7 +9,7 @@ export type {
   RunOptions,
   RunResult,
   NodeResult,
-  NodeStatus,
+  NodeState,
   GateResult,
   ResolvedNode,
 } from './types.js';

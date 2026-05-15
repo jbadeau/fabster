@@ -1,4 +1,13 @@
-export type NodeStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'gated';
+export type NodeState =
+  | 'pending'
+  | 'executing'
+  | 'validating'
+  | 'publishing'
+  | 'reviewing'
+  | 'complete'
+  | 'failed'
+  | 'gated'
+  | 'skipped';
 
 export type WorkflowStatus = 'running' | 'success' | 'failed' | 'gated';
 
@@ -12,13 +21,14 @@ export interface NodeInfo {
   readonly id: string;
   readonly name: string;
   readonly type: 'command' | 'task';
-  readonly status: NodeStatus;
+  readonly state: NodeState;
   readonly reasoning?: 'low' | 'medium' | 'high';
   readonly agent?: string;
   readonly branch: string;
   readonly mr?: string;
   readonly duration: number;
-  readonly gates: readonly GateInfo[];
+  readonly validationGates: readonly GateInfo[];
+  readonly reviewGates: readonly GateInfo[];
   readonly logs: readonly string[];
   readonly inputs: Record<string, string | number | boolean>;
   readonly errors: readonly string[];

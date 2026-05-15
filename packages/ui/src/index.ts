@@ -6,7 +6,7 @@ export { LogOutput } from './components/log-output.js';
 
 // Types
 export type {
-  NodeStatus,
+  NodeState,
   WorkflowStatus,
   GateInfo,
   NodeInfo,

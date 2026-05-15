@@ -5,16 +5,16 @@ import type { NodeInfo } from '../types.js';
 
 const mockNodes: NodeInfo[] = [
   {
-    id: 'step-1', name: 'cmd-a', type: 'command', status: 'success',
-    branch: '', duration: 1000, gates: [], logs: [], inputs: {}, errors: [],
+    id: 'step-1', name: 'cmd-a', type: 'command', state: 'complete',
+    branch: '', duration: 1000, validationGates: [], reviewGates: [], logs: [], inputs: {}, errors: [],
   },
   {
-    id: 'step-2', name: 'cmd-b', type: 'task', status: 'running',
-    branch: '', duration: 500, gates: [], logs: [], inputs: {}, errors: [],
+    id: 'step-2', name: 'cmd-b', type: 'task', state: 'executing',
+    branch: '', duration: 500, validationGates: [], reviewGates: [], logs: [], inputs: {}, errors: [],
   },
   {
-    id: 'step-3', name: 'cmd-c', type: 'command', status: 'pending',
-    branch: '', duration: 0, gates: [], logs: [], inputs: {}, errors: [],
+    id: 'step-3', name: 'cmd-c', type: 'command', state: 'pending',
+    branch: '', duration: 0, validationGates: [], reviewGates: [], logs: [], inputs: {}, errors: [],
   },
 ];
 
@@ -32,7 +32,6 @@ describe('NodeList', () => {
     const { lastFrame } = render(<NodeList nodes={mockNodes} selectedIndex={1} />);
     const output = lastFrame();
 
-    // Selected node has > indicator
     expect(output).toContain('>');
     expect(output).toContain('step-2');
   });

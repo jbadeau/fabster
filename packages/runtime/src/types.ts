@@ -6,7 +6,16 @@ import type {
   TaskDefinition,
 } from '@fabster/core';
 
-export type NodeStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'gated';
+export type NodeState =
+  | 'pending'
+  | 'executing'
+  | 'validating'
+  | 'publishing'
+  | 'reviewing'
+  | 'complete'
+  | 'failed'
+  | 'gated'
+  | 'skipped';
 
 export interface ModelMap {
   readonly low: LanguageModel;
@@ -30,10 +39,11 @@ export interface RunResult {
 export interface NodeResult {
   readonly id: string;
   readonly definition: TaskDefinition | CommandDefinition;
-  readonly status: NodeStatus;
+  readonly state: NodeState;
   readonly branch: string;
   readonly mr?: string;
-  readonly gates: readonly GateResult[];
+  readonly validationGates: readonly GateResult[];
+  readonly reviewGates: readonly GateResult[];
   readonly duration: number;
   readonly logs: readonly string[];
 }

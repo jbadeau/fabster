@@ -44,7 +44,7 @@ export function App({ workflow }: AppProps) {
 
   const selectedNode = nodes[selectedIndex] ?? null;
   const completedCount = nodes.filter(
-    (n) => n.status === 'success' || n.status === 'gated',
+    (n) => n.state === 'complete' || n.state === 'gated',
   ).length;
   const statusInfo = STATUS_LABELS[status] ?? { text: status, color: 'gray' };
   const workflowComplete = status === 'success';

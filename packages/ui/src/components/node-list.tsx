@@ -1,19 +1,25 @@
 import { Box, Text } from 'ink';
 import type { NodeInfo } from '../types.js';
 
-const STATUS_ICONS: Record<string, string> = {
+const STATE_ICONS: Record<string, string> = {
   pending: 'o',
-  running: '~',
-  success: '+',
+  executing: '~',
+  validating: '?',
+  publishing: '^',
+  reviewing: '!',
+  complete: '+',
   failed: 'x',
   skipped: '-',
   gated: '!',
 };
 
-const STATUS_COLORS: Record<string, string> = {
+const STATE_COLORS: Record<string, string> = {
   pending: 'gray',
-  running: 'yellow',
-  success: 'green',
+  executing: 'yellow',
+  validating: 'cyan',
+  publishing: 'blue',
+  reviewing: 'yellow',
+  complete: 'green',
   failed: 'red',
   skipped: 'gray',
   gated: 'yellow',
@@ -31,8 +37,8 @@ export function NodeList({ nodes, selectedIndex }: NodeListProps) {
       <Text> </Text>
       {nodes.map((node, i) => {
         const selected = i === selectedIndex;
-        const icon = STATUS_ICONS[node.status] ?? '?';
-        const color = STATUS_COLORS[node.status] ?? 'gray';
+        const icon = STATE_ICONS[node.state] ?? '?';
+        const color = STATE_COLORS[node.state] ?? 'gray';
         const isLast = i === nodes.length - 1;
 
         return (

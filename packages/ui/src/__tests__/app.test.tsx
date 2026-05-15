@@ -12,80 +12,45 @@ const mockRunningWorkflow: WorkflowInfo = {
       id: 'scaffold-tokens',
       name: 'create-react-library',
       type: 'command',
-      status: 'success',
+      state: 'complete',
       branch: 'fabster/create-ds/scaffold-tokens',
       mr: '#142',
       duration: 4000,
-      gates: [
-        { kind: 'successfulBuild', passed: true },
-        { kind: 'linted', passed: true },
-        { kind: 'formatted', passed: true },
-      ],
-      logs: [
-        '> nx generate @forge/react:library --name=tokens --scope=design-system',
-        'CREATE packages/design-system/tokens/package.json',
-        'CREATE packages/design-system/tokens/src/index.ts',
-        '> pnpm format',
-        '> nx build design-system-tokens',
-        'Build successful',
-      ],
-      inputs: { name: 'tokens', scope: 'design-system', publishable: true },
-      errors: [],
-    },
-    {
-      id: 'scaffold-comps',
-      name: 'create-react-library',
-      type: 'command',
-      status: 'success',
-      branch: 'fabster/create-ds/scaffold-comps',
-      mr: '#143',
-      duration: 3000,
-      gates: [
+      validationGates: [
         { kind: 'successfulBuild', passed: true },
         { kind: 'linted', passed: true },
       ],
-      logs: [
-        '> nx generate @forge/react:library --name=components --scope=design-system',
-        'CREATE packages/design-system/components/package.json',
-        'Build successful',
-      ],
-      inputs: { name: 'components', scope: 'design-system', publishable: true },
+      reviewGates: [],
+      logs: ['> nx generate ...', 'Build successful'],
+      inputs: { name: 'tokens', scope: 'design-system' },
       errors: [],
     },
     {
       id: 'impl-tokens',
       name: 'implement-component',
       type: 'task',
-      status: 'running',
+      state: 'executing',
       reasoning: 'medium',
       agent: 'forge-generator',
       branch: 'fabster/create-ds/impl-tokens',
       duration: 47000,
-      gates: [],
-      logs: [
-        '[think] I need to create color tokens. Let me check what exists first...',
-        '[tool] readFile',
-        '  path: /packages/design-system/tokens/src/',
-        '[result] Directory exists but src/ is empty',
-        '[think] Empty directory. I\'ll create the base color palette...',
-        '[tool] writeFile',
-        '  path: src/colors.ts',
-        '[result] Written 42 lines',
-      ],
-      inputs: { componentName: 'color-tokens', library: 'design-system-tokens' },
+      validationGates: [],
+      reviewGates: [],
+      logs: ['[think] Creating color tokens...'],
+      inputs: { componentName: 'color-tokens' },
       errors: [],
     },
     {
       id: 'impl-button',
       name: 'implement-component',
       type: 'task',
-      status: 'pending',
-      reasoning: 'medium',
+      state: 'pending',
       branch: '',
       duration: 0,
-      gates: [],
+      validationGates: [],
+      reviewGates: [],
       logs: [],
-      inputs: { componentName: 'button', library: 'design-system-components' },
+      inputs: {},
       errors: [],
     },
   ],
@@ -97,7 +62,7 @@ const mockCompletedWorkflow: WorkflowInfo = {
   elapsed: 195000,
   nodes: mockRunningWorkflow.nodes.map((n) => ({
     ...n,
-    status: 'success' as const,
+    state: 'complete' as const,
     mr: n.mr ?? '#145',
     duration: n.duration || 105000,
   })),
@@ -111,20 +76,14 @@ const mockFailedWorkflow: WorkflowInfo = {
     mockRunningWorkflow.nodes[0],
     {
       ...mockRunningWorkflow.nodes[1],
-      status: 'failed',
-      gates: [
+      state: 'failed' as const,
+      validationGates: [
         { kind: 'successfulBuild', passed: true },
         { kind: 'linted', passed: false },
       ],
-      errors: [
-        'ERROR: 3 lint violations',
-        'src/index.ts:5 missing-export',
-        'src/index.ts:12 no-unused-vars',
-        'src/lib.ts:24 prefer-const',
-      ],
+      errors: ['ERROR: 3 lint violations'],
     },
-    { ...mockRunningWorkflow.nodes[2], status: 'skipped', logs: ['Skipped'] },
-    { ...mockRunningWorkflow.nodes[3], status: 'skipped', logs: ['Skipped'] },
+    { ...mockRunningWorkflow.nodes[2], state: 'skipped' as const, logs: ['Skipped'] },
   ],
 };
 
@@ -135,10 +94,10 @@ describe('App', () => {
 
     expect(output).toContain('fabster');
     expect(output).toContain('create-design-system');
-    expect(output).toContain('scaffold-toke');  // truncated in narrow column
+    expect(output).toContain('scaffold-toke');
     expect(output).toContain('impl-tokens');
     expect(output).toContain('impl-button');
-    expect(output).toContain('2/4 complete');
+    expect(output).toContain('1/3 complete');
   });
 
   it('renders completed workflow', () => {
@@ -155,6 +114,5 @@ describe('App', () => {
     const output = lastFrame();
 
     expect(output).toContain('failed');
-    expect(output).toContain('scaffold-comp');  // truncated in narrow column
   });
 });

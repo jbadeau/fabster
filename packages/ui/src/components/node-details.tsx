@@ -1,5 +1,5 @@
 import { Box, Text } from 'ink';
-import type { NodeInfo } from '../types.js';
+import type { GateInfo, NodeInfo } from '../types.js';
 
 interface NodeDetailsProps {
   node: NodeInfo | null;
@@ -20,12 +20,14 @@ export function NodeDetails({ node, allNodes, workflowComplete }: NodeDetailsPro
     );
   }
 
+  const allGates = [...node.validationGates, ...node.reviewGates];
+
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text bold>{node.id}</Text>
       <Text> </Text>
 
-      <Text>{'Status:  '}<Text color={statusColor(node.status)}>{statusLabel(node.status)}</Text></Text>
+      <Text>{'State:   '}<Text color={stateColor(node.state)}>{node.state}</Text></Text>
       <Text>{'Type:    '}<Text>{node.type === 'task' ? 'task (agentic)' : 'command'}</Text></Text>
 
       {node.type === 'task' && node.agent && (
@@ -45,24 +47,33 @@ export function NodeDetails({ node, allNodes, workflowComplete }: NodeDetailsPro
         <Text key={k}>  {k}: {String(v)}</Text>
       ))}
 
-      <Text> </Text>
-      <Text bold>Gates:</Text>
-      {node.gates.length === 0 && <Text color="gray">  none</Text>}
-      {node.gates.length > 0 && (
-        <Box>
-          <Text>  </Text>
-          {node.gates.map((g, i) => (
-            <Box key={i}>
-              <Text color={gateColor(g)}>
-                [{gateIcon(g)} {g.kind}]
-              </Text>
-              {i < node.gates.length - 1 && <Text color="gray">{'\u2192'}</Text>}
-            </Box>
-          ))}
-        </Box>
+      {/* Validation gates */}
+      {node.validationGates.length > 0 && (
+        <>
+          <Text> </Text>
+          <Text bold>Validation:</Text>
+          <GatePipeline gates={node.validationGates} />
+        </>
       )}
 
-      {node.status === 'failed' && node.errors.length > 0 && (
+      {/* Review gates */}
+      {node.reviewGates.length > 0 && (
+        <>
+          <Text> </Text>
+          <Text bold>Review:</Text>
+          <GatePipeline gates={node.reviewGates} />
+        </>
+      )}
+
+      {allGates.length === 0 && (
+        <>
+          <Text> </Text>
+          <Text bold>Gates:</Text>
+          <Text color="gray">  none</Text>
+        </>
+      )}
+
+      {node.state === 'failed' && node.errors.length > 0 && (
         <>
           <Text> </Text>
           <Text bold color="red">Errors:</Text>
@@ -72,7 +83,7 @@ export function NodeDetails({ node, allNodes, workflowComplete }: NodeDetailsPro
         </>
       )}
 
-      {node.status === 'gated' && (
+      {node.state === 'gated' && (
         <>
           <Text> </Text>
           <Text color="yellow">Waiting for human approval</Text>
@@ -87,9 +98,25 @@ export function NodeDetails({ node, allNodes, workflowComplete }: NodeDetailsPro
   );
 }
 
+function GatePipeline({ gates }: { gates: readonly GateInfo[] }) {
+  return (
+    <Box>
+      <Text>  </Text>
+      {gates.map((g, i) => (
+        <Box key={i}>
+          <Text color={gateColor(g)}>
+            [{gateIcon(g)} {g.kind}]
+          </Text>
+          {i < gates.length - 1 && <Text color="gray">{'\u2192'}</Text>}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
 function SummaryView({ nodes }: { nodes: readonly NodeInfo[] }) {
   const totalDuration = nodes.reduce((sum, n) => sum + n.duration, 0);
-  const completedCount = nodes.filter((n) => n.status === 'success').length;
+  const completedCount = nodes.filter((n) => n.state === 'complete').length;
 
   return (
     <Box flexDirection="column" paddingX={1}>
@@ -105,8 +132,8 @@ function SummaryView({ nodes }: { nodes: readonly NodeInfo[] }) {
           <Box>
             <Text color="cyan">{n.mr ?? '(no MR)'}</Text>
             <Text> {n.id} </Text>
-            <Text color={n.status === 'success' ? 'green' : 'red'}>
-              {n.status === 'success' ? '+' : 'x'}
+            <Text color={n.state === 'complete' ? 'green' : 'red'}>
+              {n.state === 'complete' ? '+' : 'x'}
             </Text>
           </Box>
           {i < nodes.length - 1 && (
@@ -115,7 +142,7 @@ function SummaryView({ nodes }: { nodes: readonly NodeInfo[] }) {
         </Box>
       ))}
       <Text> </Text>
-      {nodes.every((n) => n.status === 'success') && (
+      {nodes.every((n) => n.state === 'complete') && (
         <>
           <Text color="green">All gates passed</Text>
           <Text color="green">Ready to merge in order</Text>
@@ -125,29 +152,25 @@ function SummaryView({ nodes }: { nodes: readonly NodeInfo[] }) {
   );
 }
 
-function gateColor(g: { passed: boolean; kind: string }): string {
+function gateColor(g: GateInfo): string {
   if (g.passed) return 'green';
   if (g.kind === 'humanApproved') return 'yellow';
   return 'red';
 }
 
-function gateIcon(g: { passed: boolean; kind: string }): string {
+function gateIcon(g: GateInfo): string {
   if (g.passed) return '+';
   if (g.kind === 'humanApproved') return '?';
   return 'x';
 }
 
-function statusColor(status: string): string {
+function stateColor(state: string): string {
   const map: Record<string, string> = {
-    success: 'green', failed: 'red', running: 'yellow',
+    complete: 'green', failed: 'red', executing: 'yellow',
+    validating: 'cyan', publishing: 'blue', reviewing: 'yellow',
     gated: 'yellow', skipped: 'gray', pending: 'gray',
   };
-  return map[status] ?? 'gray';
-}
-
-function statusLabel(status: string): string {
-  if (status === 'gated') return 'waiting approval';
-  return status;
+  return map[state] ?? 'gray';
 }
 
 function formatDuration(ms: number): string {

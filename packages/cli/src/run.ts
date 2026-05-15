@@ -54,12 +54,12 @@ export async function run(workflowFile: string, flags: RunFlags): Promise<void> 
   console.log('');
   console.log(`Workflow "${result.workflow}" ${result.status}`);
   for (const node of result.nodes) {
-    const icon = node.status === 'success' ? '+' : node.status === 'failed' ? 'x' : '-';
-    console.log(`  ${icon} ${node.id} (${formatDuration(node.duration)})`);
+    const icon = node.state === 'complete' ? '+' : node.state === 'failed' ? 'x' : node.state === 'gated' ? '?' : '-';
+    console.log(`  ${icon} ${node.id} [${node.state}] (${formatDuration(node.duration)})`);
     if (node.mr) {
       console.log(`    MR: ${node.mr}`);
     }
-    if (node.status === 'failed' && node.logs.length > 0) {
+    if (node.state === 'failed' && node.logs.length > 0) {
       console.log('    Logs:');
       for (const log of node.logs) {
         console.log(`      ${log}`);
