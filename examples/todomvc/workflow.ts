@@ -57,10 +57,24 @@ export const models: ModelMap = {
 
 const generateOpenApiSpec = task({
   name: 'generate-openapi-spec',
-  purpose: 'Create an OpenAPI 3.0 spec for a Todo CRUD API with endpoints: GET /todos, POST /todos, PUT /todos/:id, DELETE /todos/:id. Write it to packages/api-spec/src/openapi.yaml',
+  purpose: `Create an API spec project with an OpenAPI 3.0 YAML file.
+
+You MUST use the writeFile tool to create these two files:
+
+1. /repo/packages/api-spec/project.json with content:
+{"name": "api-spec", "sourceRoot": "packages/api-spec", "projectType": "library"}
+
+2. /repo/packages/api-spec/todo.openapi.yaml with an OpenAPI 3.0 spec defining:
+- GET /todos - list all todos (returns array of Todo)
+- POST /todos - create a todo (accepts title, returns Todo)
+- PUT /todos/{id} - update a todo (accepts title and completed, returns Todo)
+- DELETE /todos/{id} - delete a todo (returns 204)
+- Todo schema: { id: string, title: string, completed: boolean, createdAt: string }
+
+Call writeFile twice — once for each file. Start now.`,
   reasoning: 'medium',
   requirements: [
-    require('agent.skill', { name: 'code-generation', language: 'typescript' }),
+    require('agent.skill', { name: 'openapi' }),
   ],
   inputs: {
     project: string('Library project to write the spec into'),
@@ -69,15 +83,14 @@ const generateOpenApiSpec = task({
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
     tools: ['node', 'npm'],
   },
-  gates: [successfulBuild()],
+  gates: [],
 });
 
 const generateApiClient = command({
   name: 'generate-api-client',
-  purpose: 'Generate a TypeScript API client from an OpenAPI spec',
+  purpose: 'Generate a TypeScript fetch API client from an OpenAPI spec using openapi-generator',
   run: [
-    'npm install openapi-typescript-codegen --save-dev',
-    'npx openapi-typescript-codegen --input {specPath} --output {outputDir} --client fetch',
+    'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --additional-properties=typescriptThreePlus=true,supportsES6=true',
   ],
   inputs: {
     specPath: string('Path to the OpenAPI spec file'),
@@ -92,7 +105,22 @@ const generateApiClient = command({
 
 const implementBackend = task({
   name: 'implement-backend',
-  purpose: 'Implement Express API routes for the Todo CRUD API matching the OpenAPI spec, with in-memory storage and tests',
+  purpose: `Implement an Express API server for the Todo CRUD API.
+
+You MUST use tools to create files. Start by reading /repo/packages/api-spec/src/openapi.yaml to understand the API contract, then explore /repo/apps/api/src/ to see the project structure.
+
+Create these files using writeFile:
+- /repo/apps/api/src/main.ts - Express server with CORS, JSON parsing, listening on port 3000
+- /repo/apps/api/src/routes/todos.ts - CRUD route handlers using in-memory array storage
+- /repo/apps/api/src/types.ts - Todo interface matching the OpenAPI spec
+
+The server should:
+- Use an in-memory array for storage (no database)
+- Generate UUIDs for todo IDs
+- Return proper HTTP status codes (200, 201, 204, 404)
+- Handle JSON request/response
+
+After writing files, run: npx nx build api`,
   reasoning: 'high',
   requirements: [
     require('agent.skill', { name: 'code-generation', language: 'typescript' }),
@@ -111,7 +139,20 @@ const implementBackend = task({
 
 const implementFrontend = task({
   name: 'implement-frontend',
-  purpose: 'Implement a TodoMVC React UI that uses the generated API client, with add/complete/delete/filter functionality',
+  purpose: `Implement a TodoMVC React frontend application.
+
+You MUST use tools to create files. Start by exploring /repo/apps/web/src/ to understand the project structure.
+
+Create these files using writeFile:
+- /repo/apps/web/src/app/app.tsx - Main App component with todo list UI
+- /repo/apps/web/src/app/todo-item.tsx - Individual todo item component with checkbox and delete button
+- /repo/apps/web/src/app/todo-input.tsx - Input component for adding new todos
+- /repo/apps/web/src/app/use-todos.ts - Custom hook that fetches/creates/updates/deletes todos via fetch() to http://localhost:3000
+
+Features: add todos, toggle completion, delete todos, show count of remaining items.
+Style with basic CSS (inline styles or a CSS module).
+
+After writing files, run: npx nx build web`,
   reasoning: 'high',
   requirements: [
     require('agent.skill', { name: 'code-generation', language: 'typescript' }),
@@ -150,17 +191,10 @@ export default workflow({
       plugin: '@nx/node',
     }, { dependsOn: [addReact] });
 
-    // Step 3: Generate the shared API spec library
-    const specLib = ctx.run('generate-spec-lib', generateLibrary, {
-      generator: '@nx/js:library',
-      name: 'api-spec',
-      directory: 'packages/api-spec',
-    }, { dependsOn: [addNode] });
-
-    // Step 4: Agent writes the OpenAPI spec
+    // Step 3: Agent creates API spec project with OpenAPI yaml
     const spec = ctx.run('write-openapi-spec', generateOpenApiSpec, {
       project: 'api-spec',
-    }, { dependsOn: [specLib] });
+    }, { dependsOn: [addNode] });
 
     // Step 5: Generate the API client library
     const clientLib = ctx.run('generate-client-lib', generateLibrary, {
@@ -171,7 +205,7 @@ export default workflow({
 
     // Step 6: Generate API client from spec
     const client = ctx.run('generate-api-client', generateApiClient, {
-      specPath: 'packages/api-spec/src/openapi.yaml',
+      specPath: 'packages/api-spec/todo.openapi.yaml',
       outputDir: 'packages/api-client/src/generated',
     }, { dependsOn: [clientLib] });
 

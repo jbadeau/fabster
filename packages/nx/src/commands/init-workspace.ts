@@ -2,11 +2,10 @@ import { command } from '@fabster/core';
 
 export const initWorkspace = command({
   name: 'init-workspace',
-  purpose: 'Initialize an Nx TypeScript workspace in the current directory',
+  purpose: 'Initialize an Nx workspace in the current directory using nx init',
   run: [
-    'npx nx@latest init --nxCloud=skip --no-interactive',
-    'npm install @nx/eslint @nx/eslint-plugin @nx/jest --save-dev',
-    'npm install',
+    'npm init -y',
+    'npx nx@latest init --nxCloud=skip --useDotNxInstallation=false --no-interactive',
   ],
   inputs: {},
   permissions: {

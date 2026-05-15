@@ -22,18 +22,31 @@ export async function executeTask(
     .join('\n');
 
   const prompt = [
-    `Task: ${task.purpose}`,
+    `You must complete the following task by using tools. Do NOT just describe what to do — use the writeFile, readFile, listDirectory, and runCommand tools to actually make changes.`,
     '',
-    'Inputs:',
+    `## Task`,
+    task.purpose,
+    '',
+    `## Inputs`,
     inputDescription,
+    '',
+    `## Instructions`,
+    `1. Start by using listDirectory to explore the relevant project structure`,
+    `2. Use readFile to understand existing code if needed`,
+    `3. Use writeFile to create/modify all necessary files`,
+    `4. Use runCommand to verify your changes (build, test, lint)`,
+    `5. If anything fails, fix it and retry`,
+    '',
+    `Begin now. Use tools immediately.`,
   ].join('\n');
 
   const result = await generateText({
     model,
     tools,
+    toolChoice: 'required',
     system: agentDef.instructions,
     prompt,
-    stopWhen: stepCountIs(20),
+    stopWhen: stepCountIs(30),
   });
 
   return result;
