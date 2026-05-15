@@ -1,47 +1,81 @@
+import path from 'node:path';
 import { miseExec } from '../engine/mise.js';
 
-export async function createBranch(
-  cwd: string,
+export interface WorktreeInfo {
+  readonly branch: string;
+  readonly worktreePath: string;
+}
+
+/**
+ * Create a git worktree for a node. The worktree is a separate directory
+ * with its own branch, based on the parent branch.
+ */
+export async function createWorktree(
+  repoCwd: string,
   workflowName: string,
   nodeId: string,
   parentBranch: string,
-): Promise<string> {
-  const branchName = `fabster/${workflowName}/${nodeId}`;
+): Promise<WorktreeInfo> {
+  const branch = `fabster/${workflowName}/${nodeId}`;
+  const worktreeDir = path.join(repoCwd, '.fabster-worktrees', nodeId);
 
-  // Check if repo has any commits
-  const hasCommits = await miseExec('git rev-parse HEAD', cwd);
-  if (hasCommits.exitCode !== 0) {
-    // No commits yet — create initial commit so we can branch
-    await miseExec('git add -A', cwd);
-    await miseExec('git commit --allow-empty -m "fabster: initial commit"', cwd);
-  }
+  // Create the branch from parent
+  await miseExec(`git branch ${branch} ${parentBranch}`, repoCwd);
 
-  await miseExec(`git checkout ${parentBranch}`, cwd);
-  await miseExec(`git checkout -b ${branchName}`, cwd);
+  // Create worktree at the branch
+  await miseExec(`git worktree add "${worktreeDir}" ${branch}`, repoCwd);
 
-  return branchName;
+  return { branch, worktreePath: worktreeDir };
 }
 
+/**
+ * Commit all changes in a worktree.
+ */
 export async function commitChanges(
-  cwd: string,
+  worktreePath: string,
   message: string,
 ): Promise<string | null> {
-  const status = await miseExec('git status --porcelain', cwd);
+  const status = await miseExec('git status --porcelain', worktreePath);
 
   if (status.stdout.trim() === '') {
     return null;
   }
 
-  await miseExec('git add -A', cwd);
-  await miseExec(`git commit -m "${message}"`, cwd);
+  await miseExec('git add -A', worktreePath);
+  await miseExec(`git commit -m "${message}"`, worktreePath);
 
-  const result = await miseExec('git rev-parse HEAD', cwd);
+  const result = await miseExec('git rev-parse HEAD', worktreePath);
   return result.stdout.trim();
 }
 
-export async function getCurrentBranch(
-  cwd: string,
-): Promise<string> {
-  const result = await miseExec('git branch --show-current', cwd);
-  return result.stdout.trim();
+/**
+ * Remove a worktree after the node completes.
+ */
+export async function removeWorktree(
+  repoCwd: string,
+  worktreePath: string,
+): Promise<void> {
+  await miseExec(`git worktree remove "${worktreePath}" --force`, repoCwd);
+}
+
+/**
+ * Check if a branch already exists.
+ */
+export async function branchExists(
+  repoCwd: string,
+  branch: string,
+): Promise<boolean> {
+  const result = await miseExec(`git branch --list "${branch}"`, repoCwd);
+  return result.stdout.trim() !== '';
+}
+
+/**
+ * Ensure the repo has at least one commit so we can create branches.
+ */
+export async function ensureInitialCommit(repoCwd: string): Promise<void> {
+  const hasCommits = await miseExec('git rev-parse HEAD', repoCwd);
+  if (hasCommits.exitCode !== 0) {
+    await miseExec('git add -A', repoCwd);
+    await miseExec('git commit --allow-empty -m "fabster: initial commit"', repoCwd);
+  }
 }

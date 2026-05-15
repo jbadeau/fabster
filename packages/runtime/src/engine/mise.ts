@@ -9,6 +9,9 @@ export async function provisionTools(
   tools: readonly string[],
   cwd: string,
 ): Promise<void> {
+  // Trust mise config in this directory (worktrees copy mise.toml)
+  await nativeExec(`${MISE_BIN} trust`, { cwd });
+
   if (tools.length === 0) return;
 
   const toolList = tools.join(' ');

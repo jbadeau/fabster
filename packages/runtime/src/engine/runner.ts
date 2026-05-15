@@ -1,16 +1,20 @@
 import { Workspace } from '@struktoai/mirage-node';
+import { DiskResource } from '@struktoai/mirage-node';
 import type { InputValue, WorkflowDefinition } from '@fabster/core';
 import type { GateResult, NodeResult, NodeState, RunOptions, RunResult } from '../types.js';
 import { extractNodes } from './graph.js';
 import { executeNode } from './node-executor.js';
-import { miseExec, provisionTools } from './mise.js';
-import { createBranch, commitChanges } from '../git/branch.js';
+import { provisionTools } from './mise.js';
+import {
+  createWorktree,
+  commitChanges,
+  removeWorktree,
+  branchExists,
+  ensureInitialCommit,
+} from '../git/branch.js';
 import { createMR } from '../git/mr.js';
 import { splitGates, runValidationGates, checkReviewGates } from '../gates/gate-checker.js';
 
-/**
- * Resolve OutputRefs in inputs using outputs from completed nodes.
- */
 function resolveInputs(
   inputs: Record<string, InputValue>,
   nodeOutputs: Map<string, Record<string, string | number | boolean>>,
@@ -21,9 +25,7 @@ function resolveInputs(
     if (typeof value === 'object' && value !== null && '_tag' in value && value._tag === 'outputRef') {
       const outputs = nodeOutputs.get(value.nodeId);
       if (!outputs || !(value.outputName in outputs)) {
-        throw new Error(
-          `Output "${value.outputName}" not found on node "${value.nodeId}"`,
-        );
+        throw new Error(`Output "${value.outputName}" not found on node "${value.nodeId}"`);
       }
       resolved[key] = outputs[value.outputName];
     } else {
@@ -48,7 +50,7 @@ export async function runWorkflow(
   options: RunOptions,
 ): Promise<RunResult> {
   const nodes = extractNodes(workflow);
-  const cwd = extractCwd(workflow);
+  const repoCwd = extractCwd(workflow);
 
   // Dry run
   if (options.dryRun) {
@@ -69,67 +71,75 @@ export async function runWorkflow(
     };
   }
 
-  const ws = new Workspace(workflow.workspace.mounts, { mode: 'exec' });
+  // Ensure repo has at least one commit
+  await ensureInitialCommit(repoCwd);
+
   const nodeResults: NodeResult[] = [];
   const nodeOutputs = new Map<string, Record<string, string | number | boolean>>();
   let previousBranch = 'main';
   let failed = false;
 
-  try {
-    for (const node of nodes) {
-      const startTime = Date.now();
-      const def = node.definition;
-      const branch = `fabster/${workflow.name}/${node.id}`;
-      const logs: string[] = [];
-      let state: NodeState = 'pending';
-      let mrUrl: string | undefined;
-      let validationGates: GateResult[] = [];
-      let reviewGates: GateResult[] = [];
+  for (const node of nodes) {
+    const startTime = Date.now();
+    const def = node.definition;
+    const branch = `fabster/${workflow.name}/${node.id}`;
+    const logs: string[] = [];
+    let state: NodeState = 'pending';
+    let mrUrl: string | undefined;
+    let validationGates: GateResult[] = [];
+    let reviewGates: GateResult[] = [];
 
-      // Skip if previous node failed
-      if (failed) {
+    if (failed) {
+      nodeResults.push({
+        id: node.id, definition: def, state: 'skipped', branch: '',
+        validationGates: [], reviewGates: [],
+        duration: 0, logs: ['Skipped — previous node failed'], outputs: {},
+      });
+      continue;
+    }
+
+    try {
+      const resolvedInputs = resolveInputs(node.inputs, nodeOutputs);
+
+      // Skip if branch already exists
+      if (await branchExists(repoCwd, branch)) {
+        logs.push(`Branch ${branch} already exists — skipping`);
         nodeResults.push({
-          id: node.id, definition: def, state: 'skipped', branch: '',
+          id: node.id, definition: def, state: 'complete', branch,
           validationGates: [], reviewGates: [],
-          duration: 0, logs: ['Skipped — previous node failed'], outputs: {},
+          duration: Date.now() - startTime, logs, outputs: {},
         });
+        previousBranch = branch;
         continue;
       }
 
+      // === EXECUTING ===
+      state = 'executing';
+      logs.push(`[executing] ${def.kind}: ${def.name}`);
+
+      // Create isolated worktree for this node
+      const worktree = await createWorktree(repoCwd, workflow.name, node.id, previousBranch);
+      logs.push(`Created worktree: ${worktree.worktreePath} (branch: ${worktree.branch})`);
+
+      const worktreeCwd = worktree.worktreePath;
+
+      // Provision tools in the worktree
+      const tools = def.permissions?.tools ?? [];
+      if (tools.length > 0) {
+        logs.push(`Provisioning tools: ${tools.join(', ')}`);
+        await provisionTools(tools, worktreeCwd);
+      }
+
+      // Create a Mirage workspace pointing at the worktree
+      const ws = new Workspace(
+        { '/repo': new DiskResource({ root: worktreeCwd }) },
+        { mode: 'exec' },
+      );
+
       try {
-        // Resolve OutputRefs in inputs
-        const resolvedInputs = resolveInputs(node.inputs, nodeOutputs);
-
-        // Skip if branch already exists
-        const branchCheck = await miseExec(`git branch --list "${branch}"`, cwd);
-        if (branchCheck.stdout.trim() !== '') {
-          logs.push(`Branch ${branch} already exists — skipping`);
-          nodeResults.push({
-            id: node.id, definition: def, state: 'complete', branch,
-            validationGates: [], reviewGates: [],
-            duration: Date.now() - startTime, logs, outputs: {},
-          });
-          previousBranch = branch;
-          continue;
-        }
-
-        // === EXECUTING ===
-        state = 'executing';
-        logs.push(`[executing] ${def.kind}: ${def.name}`);
-
-        const tools = def.permissions?.tools ?? [];
-        if (tools.length > 0) {
-          logs.push(`Provisioning tools: ${tools.join(', ')}`);
-          await provisionTools(tools, cwd);
-        }
-
-        await createBranch(cwd, workflow.name, node.id, previousBranch);
-        logs.push(`Created branch: ${branch}`);
-
-        const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, ws, cwd);
+        const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, ws, worktreeCwd);
         logs.push(...execResult.logs);
 
-        // Store outputs from execution
         nodeOutputs.set(node.id, execResult.outputs);
 
         if (!execResult.success) {
@@ -140,6 +150,7 @@ export async function runWorkflow(
             validationGates: [], reviewGates: [],
             duration: Date.now() - startTime, logs, outputs: execResult.outputs,
           });
+          await removeWorktree(repoCwd, worktreeCwd);
           continue;
         }
 
@@ -149,7 +160,7 @@ export async function runWorkflow(
         if (validation.length > 0) {
           state = 'validating';
           logs.push(`[validating] Running ${validation.length} gate(s)`);
-          validationGates = await runValidationGates(validation, cwd);
+          validationGates = await runValidationGates(validation, worktreeCwd);
 
           for (const g of validationGates) {
             logs.push(`  ${g.passed ? '+' : 'x'} ${g.gate.kind}: ${g.detail}`);
@@ -168,6 +179,7 @@ export async function runWorkflow(
               validationGates, reviewGates: [],
               duration: Date.now() - startTime, logs, outputs: execResult.outputs,
             });
+            await removeWorktree(repoCwd, worktreeCwd);
             continue;
           }
         }
@@ -175,7 +187,7 @@ export async function runWorkflow(
         // === PUBLISHING ===
         state = 'publishing';
         const commitMessage = `fabster: ${def.name} — ${def.purpose}`;
-        const sha = await commitChanges(cwd, commitMessage);
+        const sha = await commitChanges(worktreeCwd, commitMessage);
         if (sha) {
           logs.push(`[publishing] Committed: ${sha}`);
         } else {
@@ -184,7 +196,7 @@ export async function runWorkflow(
 
         try {
           const mr = await createMR(
-            cwd, branch, previousBranch,
+            worktreeCwd, branch, previousBranch,
             `[fabster] ${def.name}`, def.purpose,
           );
           mrUrl = mr ?? undefined;
@@ -197,7 +209,7 @@ export async function runWorkflow(
         if (review.length > 0 && mrUrl) {
           state = 'reviewing';
           logs.push(`[reviewing] Checking ${review.length} review gate(s)`);
-          reviewGates = await checkReviewGates(review, cwd, mrUrl);
+          reviewGates = await checkReviewGates(review, worktreeCwd, mrUrl);
 
           for (const g of reviewGates) {
             logs.push(`  ${g.passed ? '+' : '?'} ${g.gate.kind}: ${g.detail}`);
@@ -216,6 +228,7 @@ export async function runWorkflow(
               duration: Date.now() - startTime, logs, outputs: nodeOutputs.get(node.id) ?? {},
             });
             previousBranch = branch;
+            await removeWorktree(repoCwd, worktreeCwd);
             continue;
           }
         }
@@ -224,23 +237,30 @@ export async function runWorkflow(
         state = 'complete';
         logs.push('[complete]');
 
+        // Clean up worktree
+        await ws.close();
+        await removeWorktree(repoCwd, worktreeCwd);
+
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        logs.push(`ERROR: ${message}`);
-        state = 'failed';
-        failed = true;
+        await ws.close();
+        await removeWorktree(repoCwd, worktreeCwd);
+        throw err;
       }
 
-      nodeResults.push({
-        id: node.id, definition: def, state, branch, mr: mrUrl,
-        validationGates, reviewGates,
-        duration: Date.now() - startTime, logs, outputs: nodeOutputs.get(node.id) ?? {},
-      });
-
-      previousBranch = branch;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logs.push(`ERROR: ${message}`);
+      state = 'failed';
+      failed = true;
     }
-  } finally {
-    await ws.close();
+
+    nodeResults.push({
+      id: node.id, definition: def, state, branch, mr: mrUrl,
+      validationGates, reviewGates,
+      duration: Date.now() - startTime, logs, outputs: nodeOutputs.get(node.id) ?? {},
+    });
+
+    previousBranch = branch;
   }
 
   const overallStatus = nodeResults.some((n) => n.state === 'failed')

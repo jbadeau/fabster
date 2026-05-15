@@ -49,8 +49,8 @@ const ollama = createOpenAI({
 
 export const models: ModelMap = {
   low: ollama.chat('devstral'),
-  medium: ollama.chat('devstral'),
-  high: ollama.chat('devstral'),
+  medium: ollama.chat('qwen3:32b'),
+  high: ollama.chat('qwen3:32b'),
 };
 
 // -- Tasks specific to this workflow --
