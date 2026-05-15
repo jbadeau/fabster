@@ -78,6 +78,10 @@ Call writeFile twice — once for each file. Start now.`,
   ],
   inputs: {
     project: string('Library project to write the spec into'),
+    specPath: string('Output path for the OpenAPI spec file'),
+  },
+  outputs: {
+    specPath: string('Path to the generated OpenAPI spec file'),
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
@@ -194,18 +198,19 @@ export default workflow({
     // Step 3: Agent creates API spec project with OpenAPI yaml
     const spec = ctx.run('write-openapi-spec', generateOpenApiSpec, {
       project: 'api-spec',
+      specPath: 'packages/api-spec/todo.openapi.yaml',
     }, { dependsOn: [addNode] });
 
-    // Step 5: Generate the API client library
+    // Step 4: Generate the API client library
     const clientLib = ctx.run('generate-client-lib', generateLibrary, {
       generator: '@nx/js:library',
       name: 'api-client',
       directory: 'packages/api-client',
     }, { dependsOn: [spec] });
 
-    // Step 6: Generate API client from spec
+    // Step 5: Generate API client from spec (uses output from step 3)
     const client = ctx.run('generate-api-client', generateApiClient, {
-      specPath: 'packages/api-spec/todo.openapi.yaml',
+      specPath: spec.output('specPath'),
       outputDir: 'packages/api-client/src/generated',
     }, { dependsOn: [clientLib] });
 

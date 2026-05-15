@@ -1,5 +1,5 @@
 import { Workspace } from '@struktoai/mirage-node';
-import type { WorkflowDefinition } from '@fabster/core';
+import type { InputValue, WorkflowDefinition } from '@fabster/core';
 import type { GateResult, NodeResult, NodeState, RunOptions, RunResult } from '../types.js';
 import { extractNodes } from './graph.js';
 import { executeNode } from './node-executor.js';
@@ -7,6 +7,32 @@ import { miseExec, provisionTools } from './mise.js';
 import { createBranch, commitChanges } from '../git/branch.js';
 import { createMR } from '../git/mr.js';
 import { splitGates, runValidationGates, checkReviewGates } from '../gates/gate-checker.js';
+
+/**
+ * Resolve OutputRefs in inputs using outputs from completed nodes.
+ */
+function resolveInputs(
+  inputs: Record<string, InputValue>,
+  nodeOutputs: Map<string, Record<string, string | number | boolean>>,
+): Record<string, string | number | boolean> {
+  const resolved: Record<string, string | number | boolean> = {};
+
+  for (const [key, value] of Object.entries(inputs)) {
+    if (typeof value === 'object' && value !== null && '_tag' in value && value._tag === 'outputRef') {
+      const outputs = nodeOutputs.get(value.nodeId);
+      if (!outputs || !(value.outputName in outputs)) {
+        throw new Error(
+          `Output "${value.outputName}" not found on node "${value.nodeId}"`,
+        );
+      }
+      resolved[key] = outputs[value.outputName];
+    } else {
+      resolved[key] = value as string | number | boolean;
+    }
+  }
+
+  return resolved;
+}
 
 function extractCwd(workflow: WorkflowDefinition): string {
   for (const resource of Object.values(workflow.workspace.mounts)) {
@@ -37,6 +63,7 @@ export async function runWorkflow(
         reviewGates: [],
         duration: 0,
         logs: [`[dry-run] Would execute ${n.definition.kind}: ${n.definition.name}`],
+        outputs: {},
       })),
       status: 'success',
     };
@@ -44,6 +71,7 @@ export async function runWorkflow(
 
   const ws = new Workspace(workflow.workspace.mounts, { mode: 'exec' });
   const nodeResults: NodeResult[] = [];
+  const nodeOutputs = new Map<string, Record<string, string | number | boolean>>();
   let previousBranch = 'main';
   let failed = false;
 
@@ -63,12 +91,15 @@ export async function runWorkflow(
         nodeResults.push({
           id: node.id, definition: def, state: 'skipped', branch: '',
           validationGates: [], reviewGates: [],
-          duration: 0, logs: ['Skipped — previous node failed'],
+          duration: 0, logs: ['Skipped — previous node failed'], outputs: {},
         });
         continue;
       }
 
       try {
+        // Resolve OutputRefs in inputs
+        const resolvedInputs = resolveInputs(node.inputs, nodeOutputs);
+
         // Skip if branch already exists
         const branchCheck = await miseExec(`git branch --list "${branch}"`, cwd);
         if (branchCheck.stdout.trim() !== '') {
@@ -76,7 +107,7 @@ export async function runWorkflow(
           nodeResults.push({
             id: node.id, definition: def, state: 'complete', branch,
             validationGates: [], reviewGates: [],
-            duration: Date.now() - startTime, logs,
+            duration: Date.now() - startTime, logs, outputs: {},
           });
           previousBranch = branch;
           continue;
@@ -95,8 +126,11 @@ export async function runWorkflow(
         await createBranch(cwd, workflow.name, node.id, previousBranch);
         logs.push(`Created branch: ${branch}`);
 
-        const execResult = await executeNode(node, options.agents, options.models, ws, cwd);
+        const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, ws, cwd);
         logs.push(...execResult.logs);
+
+        // Store outputs from execution
+        nodeOutputs.set(node.id, execResult.outputs);
 
         if (!execResult.success) {
           state = 'failed';
@@ -104,7 +138,7 @@ export async function runWorkflow(
           nodeResults.push({
             id: node.id, definition: def, state, branch,
             validationGates: [], reviewGates: [],
-            duration: Date.now() - startTime, logs,
+            duration: Date.now() - startTime, logs, outputs: execResult.outputs,
           });
           continue;
         }
@@ -132,7 +166,7 @@ export async function runWorkflow(
             nodeResults.push({
               id: node.id, definition: def, state, branch,
               validationGates, reviewGates: [],
-              duration: Date.now() - startTime, logs,
+              duration: Date.now() - startTime, logs, outputs: execResult.outputs,
             });
             continue;
           }
@@ -179,7 +213,7 @@ export async function runWorkflow(
             nodeResults.push({
               id: node.id, definition: def, state, branch, mr: mrUrl,
               validationGates, reviewGates,
-              duration: Date.now() - startTime, logs,
+              duration: Date.now() - startTime, logs, outputs: nodeOutputs.get(node.id) ?? {},
             });
             previousBranch = branch;
             continue;
@@ -200,7 +234,7 @@ export async function runWorkflow(
       nodeResults.push({
         id: node.id, definition: def, state, branch, mr: mrUrl,
         validationGates, reviewGates,
-        duration: Date.now() - startTime, logs,
+        duration: Date.now() - startTime, logs, outputs: nodeOutputs.get(node.id) ?? {},
       });
 
       previousBranch = branch;

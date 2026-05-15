@@ -28,7 +28,9 @@ export type {
   ReasoningLevel,
   TaskDefinition,
   AgentDefinition,
+  OutputRef,
   NodeHandle,
+  InputValue,
   GraphContext,
   WorkflowDefinition,
 } from './types/index.js';

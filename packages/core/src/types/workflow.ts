@@ -1,13 +1,15 @@
 import type { CommandDefinition } from './command.js';
-import type { NodeHandle } from './node.js';
+import type { NodeHandle, OutputRef } from './node.js';
 import type { TaskDefinition } from './task.js';
 import type { WorkspaceDefinition } from './workspace.js';
+
+export type InputValue = string | number | boolean | OutputRef;
 
 export interface GraphContext {
   run<D extends TaskDefinition | CommandDefinition>(
     id: string,
     definition: D,
-    inputs: Record<string, string | number | boolean>,
+    inputs: Record<string, InputValue>,
     options?: { dependsOn?: readonly NodeHandle[] },
   ): NodeHandle;
 }

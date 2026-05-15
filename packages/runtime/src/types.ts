@@ -3,6 +3,7 @@ import type {
   AgentDefinition,
   CommandDefinition,
   Gate,
+  InputValue,
   TaskDefinition,
 } from '@fabster/core';
 
@@ -46,6 +47,7 @@ export interface NodeResult {
   readonly reviewGates: readonly GateResult[];
   readonly duration: number;
   readonly logs: readonly string[];
+  readonly outputs: Record<string, string | number | boolean>;
 }
 
 export interface GateResult {
@@ -57,6 +59,6 @@ export interface GateResult {
 export interface ResolvedNode {
   readonly id: string;
   readonly definition: TaskDefinition | CommandDefinition;
-  readonly inputs: Record<string, string | number | boolean>;
+  readonly inputs: Record<string, InputValue>;
   readonly dependsOn: readonly string[];
 }

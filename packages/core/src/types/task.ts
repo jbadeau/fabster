@@ -5,13 +5,14 @@ import type { Permissions } from './common.js';
 
 export type ReasoningLevel = 'low' | 'medium' | 'high';
 
-export interface TaskDefinition<I extends IOSchema = IOSchema> {
+export interface TaskDefinition<I extends IOSchema = IOSchema, O extends IOSchema = IOSchema> {
   readonly kind: 'task';
   readonly name: string;
   readonly purpose: string;
   readonly reasoning?: ReasoningLevel;
   readonly requirements: readonly Requirement[];
   readonly inputs: I;
+  readonly outputs?: O;
   readonly permissions?: Permissions;
   readonly sandbox?: string;
   readonly gates?: readonly Gate[];
