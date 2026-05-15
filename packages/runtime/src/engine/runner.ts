@@ -116,6 +116,7 @@ export async function runWorkflow(
       // === EXECUTING ===
       state = 'executing';
       logs.push(`[executing] ${def.kind}: ${def.name}`);
+      console.log(`  ⟳ ${node.id} [executing] ${def.kind}: ${def.name}`);
 
       // Create isolated worktree for this node
       const worktree = await createWorktree(repoCwd, workflow.name, node.id, previousBranch);
@@ -159,6 +160,7 @@ export async function runWorkflow(
 
         if (validation.length > 0) {
           state = 'validating';
+      console.log(`  ? ${node.id} [validating]`);
           logs.push(`[validating] Running ${validation.length} gate(s)`);
           validationGates = await runValidationGates(validation, worktreeCwd);
 
@@ -186,6 +188,7 @@ export async function runWorkflow(
 
         // === PUBLISHING ===
         state = 'publishing';
+      console.log(`  ^ ${node.id} [publishing]`);
         const commitMessage = `fabster: ${def.name} — ${def.purpose}`;
         const sha = await commitChanges(worktreeCwd, commitMessage);
         if (sha) {
@@ -235,6 +238,7 @@ export async function runWorkflow(
 
         // === COMPLETE ===
         state = 'complete';
+      console.log(`  + ${node.id} [complete] (${Math.round((Date.now() - startTime) / 1000)}s)`);
         logs.push('[complete]');
 
         // Clean up worktree

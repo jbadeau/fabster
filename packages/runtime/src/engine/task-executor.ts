@@ -47,7 +47,7 @@ export async function executeTask(
     toolChoice: 'required',
     system: agentDef.instructions,
     prompt,
-    stopWhen: stepCountIs(30),
+    stopWhen: stepCountIs(10),
   });
 
   return result;
