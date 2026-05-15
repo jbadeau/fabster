@@ -184,7 +184,9 @@ export default workflow({
   }),
   graph: (ctx) => {
     // Step 1: Initialize Nx workspace
-    const init = ctx.run('init-workspace', initWorkspace, {});
+    const init = ctx.run('init-workspace', initWorkspace, {
+      name: 'todomvc',
+    });
 
     // Step 2: Add Nx plugins
     const addReact = ctx.run('add-react', addPlugin, {
