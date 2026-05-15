@@ -103,11 +103,13 @@ export async function runWorkflow(
 
       // Skip if branch already exists
       if (await branchExists(repoCwd, branch)) {
+        const outputs = collectDeclaredOutputs(def, resolvedInputs);
+        nodeOutputs.set(node.id, outputs);
         logs.push(`Branch ${branch} already exists — skipping`);
         nodeResults.push({
           id: node.id, definition: def, state: 'complete', branch,
           validationGates: [], reviewGates: [],
-          duration: Date.now() - startTime, logs, outputs: {},
+          duration: Date.now() - startTime, logs, outputs,
         });
         previousBranch = branch;
         continue;
@@ -274,4 +276,20 @@ export async function runWorkflow(
       : 'success';
 
   return { workflow: workflow.name, nodes: nodeResults, status: overallStatus };
+}
+
+function collectDeclaredOutputs(
+  def: NodeResult['definition'],
+  resolvedInputs: Record<string, string | number | boolean>,
+): Record<string, string | number | boolean> {
+  const outputs: Record<string, string | number | boolean> = {};
+  if (!def.outputs) return outputs;
+
+  for (const key of Object.keys(def.outputs)) {
+    if (key in resolvedInputs) {
+      outputs[key] = resolvedInputs[key];
+    }
+  }
+
+  return outputs;
 }

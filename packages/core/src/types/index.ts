@@ -24,6 +24,11 @@ export type {
 } from './workspace.js';
 export type { CommandDefinition } from './command.js';
 export type { ReasoningLevel, TaskDefinition } from './task.js';
-export type { AgentDefinition } from './agent.js';
+export type {
+  AgentDefinition,
+  NativeAgentDefinition,
+  ExternalAgentDefinition,
+  CommandAgentAdapter,
+} from './agent.js';
 export type { OutputRef, NodeHandle } from './node.js';
 export type { InputValue, GraphContext, WorkflowDefinition } from './workflow.js';

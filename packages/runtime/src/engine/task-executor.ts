@@ -1,13 +1,13 @@
 import { generateText, stepCountIs } from 'ai';
 import type { Workspace } from '@struktoai/mirage-core';
-import type { AgentDefinition, TaskDefinition } from '@fabster/core';
+import type { NativeAgentDefinition, TaskDefinition } from '@fabster/core';
 import type { ModelMap } from '../types.js';
 import { bindToolsToWorkspace } from './tool-binder.js';
 
 export async function executeTask(
   task: TaskDefinition,
   inputs: Record<string, string | number | boolean>,
-  agentDef: AgentDefinition,
+  agentDef: NativeAgentDefinition,
   models: ModelMap,
   workspace: Workspace,
   diskRoot?: string,
@@ -51,8 +51,8 @@ export async function executeTask(
     onStepFinish: ({ toolCalls, text, finishReason }) => {
       if (toolCalls?.length) {
         for (const tc of toolCalls) {
-          const args = typeof tc.args === 'object' ? JSON.stringify(tc.args).slice(0, 100) : '';
-          console.log(`    [tool] ${tc.toolName} ${args}`);
+          const input = typeof tc.input === 'object' ? JSON.stringify(tc.input).slice(0, 100) : '';
+          console.log(`    [tool] ${tc.toolName} ${input}`);
         }
       }
       if (text) {

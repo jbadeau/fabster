@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { agent } from '../builders/agent.js';
+import { agent, claudeCodeAgent, externalAgent } from '../builders/agent.js';
 import { provide } from '../builders/capability.js';
 
 describe('agent', () => {
@@ -43,5 +43,44 @@ describe('agent', () => {
     expect(a.instructions).toContain('code generation agent');
     expect(a.tools.readFile).toBeDefined();
     expect(a.tools.writeFile).toBeDefined();
+  });
+
+  it('creates an external command-backed agent definition', () => {
+    const a = externalAgent('local-claude', {
+      purpose: 'Runs Claude Code locally',
+      capabilities: [
+        provide('agent.skill', {
+          name: 'code-generation',
+          language: 'typescript',
+        }),
+      ],
+      instructions: 'Implement the requested code change.',
+      adapter: {
+        kind: 'command',
+        command: 'claude',
+        args: ['-p'],
+      },
+    });
+
+    expect(a.kind).toBe('external-agent');
+    expect(a.name).toBe('local-claude');
+    expect(a.adapter.command).toBe('claude');
+    expect(a.adapter.args).toEqual(['-p']);
+  });
+
+  it('creates a Claude Code agent with non-interactive defaults', () => {
+    const a = claudeCodeAgent('claude', {
+      purpose: 'Runs Claude Code locally',
+      capabilities: [
+        provide('agent.skill', {
+          name: 'code-generation',
+          language: 'typescript',
+        }),
+      ],
+    });
+
+    expect(a.kind).toBe('external-agent');
+    expect(a.adapter.command).toBe('claude');
+    expect(a.adapter.args).toEqual(['-p', '--max-turns', '30']);
   });
 });

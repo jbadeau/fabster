@@ -30,6 +30,8 @@ import {
   linted,
   testsPass,
   humanApproved,
+  claudeCodeAgent,
+  provide,
 } from '@fabster/core';
 import type { ModelMap } from '@fabster/runtime';
 import {
@@ -37,7 +39,6 @@ import {
   addPlugin,
   generateApp,
   generateLibrary,
-  nxDeveloper,
 } from '@fabster/nx';
 
 // -- Model configuration (local Ollama via OpenAI-compatible API) --
@@ -57,19 +58,28 @@ export const models: ModelMap = {
 
 const generateOpenApiSpec = task({
   name: 'generate-openapi-spec',
-  purpose: `Create an API spec project with an OpenAPI 3.0 YAML file.
+  purpose: `Create an API spec project with a valid OpenAPI 3.0 YAML file.
 
 You MUST use the writeFile tool to create these two files:
 
-1. /repo/packages/api-spec/project.json with content:
+1. /repo/packages/api-spec/project.json — write this exact content:
 {"name": "api-spec", "sourceRoot": "packages/api-spec", "projectType": "library"}
 
-2. /repo/packages/api-spec/todo.openapi.yaml with an OpenAPI 3.0 spec defining:
-- GET /todos - list all todos (returns array of Todo)
-- POST /todos - create a todo (accepts title, returns Todo)
-- PUT /todos/{id} - update a todo (accepts title and completed, returns Todo)
-- DELETE /todos/{id} - delete a todo (returns 204)
-- Todo schema: { id: string, title: string, completed: boolean, createdAt: string }
+2. /repo/packages/api-spec/todo.openapi.yaml — a valid OpenAPI 3.0.0 spec.
+
+IMPORTANT: Use correct OpenAPI structure. Every response and request body must have a "schema" key. Example:
+  responses:
+    '200':
+      description: Success
+      content:
+        application/json:
+          schema:            <-- REQUIRED "schema" key
+            type: array
+            items:
+              $ref: '#/components/schemas/Todo'
+
+Define a Todo schema in components/schemas with: id (string), title (string), completed (boolean), createdAt (string).
+Define endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}.
 
 Call writeFile twice — once for each file. Start now.`,
   reasoning: 'medium',
@@ -94,7 +104,7 @@ const generateApiClient = command({
   name: 'generate-api-client',
   purpose: 'Generate a TypeScript fetch API client from an OpenAPI spec using openapi-generator',
   run: [
-    'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --additional-properties=typescriptThreePlus=true,supportsES6=true',
+    'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --skip-validate-spec --additional-properties=typescriptThreePlus=true,supportsES6=true',
   ],
   inputs: {
     specPath: string('Path to the OpenAPI spec file'),
@@ -244,5 +254,19 @@ export default workflow({
   },
 });
 
-export const agents = [nxDeveloper];
-
+export const agents = [
+  claudeCodeAgent('claude-code', {
+    purpose: 'Use local Claude Code to implement Fabster workflow tasks',
+    capabilities: [
+      provide('agent.skill', { name: 'openapi' }),
+      provide('agent.skill', {
+        name: 'code-generation',
+        language: 'typescript',
+      }),
+      provide('agent.skill', { name: 'react' }),
+      provide('agent.skill', { name: 'testing' }),
+    ],
+    instructions:
+      'You are running as a Fabster task executor inside an isolated workflow worktree. Make the requested file changes directly, verify them, and do not commit, branch, or open pull requests.',
+  }),
+];

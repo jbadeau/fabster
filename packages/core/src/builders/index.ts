@@ -13,5 +13,5 @@ export {
 export { sandboxProfile } from './sandbox.js';
 export { command } from './command.js';
 export { task } from './task.js';
-export { agent } from './agent.js';
+export { agent, externalAgent, claudeCodeAgent } from './agent.js';
 export { workflow } from './workflow.js';

@@ -28,6 +28,9 @@ export type {
   ReasoningLevel,
   TaskDefinition,
   AgentDefinition,
+  NativeAgentDefinition,
+  ExternalAgentDefinition,
+  CommandAgentAdapter,
   OutputRef,
   NodeHandle,
   InputValue,
@@ -56,5 +59,7 @@ export {
   command,
   task,
   agent,
+  externalAgent,
+  claudeCodeAgent,
   workflow,
 } from './builders/index.js';
