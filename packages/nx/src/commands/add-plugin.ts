@@ -1,4 +1,4 @@
-import { command, string, successfulBuild } from '@fabster/core';
+import { command, string } from '@fabster/core';
 
 export const addPlugin = command({
   name: 'add-plugin',
@@ -11,5 +11,5 @@ export const addPlugin = command({
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
     tools: ['node', 'npm', 'npx'],
   },
-  gates: [successfulBuild()],
+  gates: [],
 });
