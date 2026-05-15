@@ -19,9 +19,14 @@ export async function provisionTools(
 }
 
 /**
- * Wraps a command with mise exec using the full binary path.
+ * Wraps a command with `mise exec <tools> --` using specific tool versions.
+ * This ensures commands run with the correct tool versions, not system defaults.
  */
-export function wrapWithMise(command: string): string {
+export function wrapWithMise(command: string, tools?: readonly string[]): string {
+  if (tools && tools.length > 0) {
+    const toolArgs = tools.join(' ');
+    return `${MISE_BIN} exec ${toolArgs} -- ${command}`;
+  }
   return `${MISE_BIN} exec -- ${command}`;
 }
 
@@ -31,8 +36,9 @@ export function wrapWithMise(command: string): string {
 export async function miseExec(
   command: string,
   cwd: string,
+  tools?: readonly string[],
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const result = await nativeExec(wrapWithMise(command), { cwd });
+  const result = await nativeExec(wrapWithMise(command, tools), { cwd });
   return {
     exitCode: result.exitCode,
     stdout: result.stdoutText,
