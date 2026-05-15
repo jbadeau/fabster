@@ -102,7 +102,7 @@ const generateApiClient = command({
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
-    tools: ['node', 'npm', 'npx', 'java'],
+    tools: ['node@22', 'npm', 'npx', 'java@21'],
   },
   gates: [successfulBuild()],
 });
