@@ -9,14 +9,17 @@
     {
       "path": "./packages/runtime"
     },
-{
-      "path": "./packages/nx"
+    {
+      "path": "./plugins/nx"
     },
     {
       "path": "./packages/cli"
     },
     {
       "path": "./packages/ui"
+    },
+    {
+      "path": "./plugins/openapi"
     }
   ]
 }

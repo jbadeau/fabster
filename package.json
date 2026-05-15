@@ -24,7 +24,8 @@
     "vitest": "~4.1.0"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "plugins/*"
   ],
   "nx": {
     "includedScripts": [],
