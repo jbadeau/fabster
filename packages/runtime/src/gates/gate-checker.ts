@@ -47,25 +47,25 @@ export async function runValidationGates(
 
     switch (gate.kind) {
       case 'successfulBuild': {
-        const result = await miseExec('npx nx affected -t build', cwd);
+        const result = await miseExec('npm exec nx -- affected -t build', cwd, ['node', 'npm']);
         passed = result.exitCode === 0;
         detail = passed ? 'build passed' : result.stderr.slice(0, 200);
         break;
       }
       case 'linted': {
-        const result = await miseExec('npx nx affected -t lint', cwd);
+        const result = await miseExec('npm exec nx -- affected -t lint', cwd, ['node', 'npm']);
         passed = result.exitCode === 0;
         detail = passed ? 'lint passed' : result.stderr.slice(0, 200);
         break;
       }
       case 'formatted': {
-        const result = await miseExec('npx nx format:check', cwd);
+        const result = await miseExec('npm exec nx -- format:check', cwd, ['node', 'npm']);
         passed = result.exitCode === 0;
         detail = passed ? 'format passed' : result.stderr.slice(0, 200);
         break;
       }
       case 'testsPass': {
-        const result = await miseExec('npx nx affected -t test', cwd);
+        const result = await miseExec('npm exec nx -- affected -t test', cwd, ['node', 'npm']);
         passed = result.exitCode === 0;
         detail = passed ? 'tests passed' : result.stderr.slice(0, 200);
         break;

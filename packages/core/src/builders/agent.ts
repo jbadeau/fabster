@@ -58,7 +58,7 @@ export function claudeCodeAgent(
     adapter: {
       kind: 'command',
       command: config.command ?? 'claude',
-      args: config.args ?? ['-p', '--max-turns', '30'],
+      args: config.args ?? ['-p', '{prompt}', '--max-turns', '30'],
       timeoutMs: config.timeoutMs,
     },
   });

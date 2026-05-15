@@ -51,9 +51,13 @@ export async function executeExternalAgentTask(
 ): Promise<ExternalAgentExecutionResult> {
   const prompt = buildPrompt(task, inputs, agent, cwd);
   const { command, args = [], timeoutMs } = agent.adapter;
+  const resolvedArgs = args.map((arg) =>
+    arg === '{prompt}' ? prompt : arg,
+  );
+  const writesPromptToStdin = !args.includes('{prompt}');
 
   return new Promise((resolve, reject) => {
-    const child = spawn(command, [...args], {
+    const child = spawn(command, resolvedArgs, {
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: process.env,
@@ -103,6 +107,6 @@ export async function executeExternalAgentTask(
       }
     });
 
-    child.stdin.end(prompt);
+    child.stdin.end(writesPromptToStdin ? prompt : undefined);
   });
 }

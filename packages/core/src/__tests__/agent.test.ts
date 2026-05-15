@@ -81,6 +81,6 @@ describe('agent', () => {
 
     expect(a.kind).toBe('external-agent');
     expect(a.adapter.command).toBe('claude');
-    expect(a.adapter.args).toEqual(['-p', '--max-turns', '30']);
+    expect(a.adapter.args).toEqual(['-p', '{prompt}', '--max-turns', '30']);
   });
 });
