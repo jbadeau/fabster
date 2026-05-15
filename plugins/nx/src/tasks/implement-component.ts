@@ -22,7 +22,7 @@ export const implementComponent = task({
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
-    tools: ['node', 'npm', 'npx'],
+    tools: ['node', 'npm'],
   },
   gates: [successfulBuild(), testsPass(), linted()],
 });

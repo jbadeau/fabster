@@ -1,3 +1,5 @@
+import { writeFile, mkdir } from 'node:fs/promises';
+import path from 'node:path';
 import type { ToolSet } from 'ai';
 import type { Workspace } from '@struktoai/mirage-core';
 import { wrapWithMise } from './mise.js';
@@ -9,6 +11,7 @@ import { wrapWithMise } from './mise.js';
 export function bindToolsToWorkspace(
   tools: ToolSet,
   workspace: Workspace,
+  diskRoot?: string,
 ): ToolSet {
   const bound: Record<string, unknown> = {};
 
@@ -28,15 +31,23 @@ export function bindToolsToWorkspace(
 
       case 'writeFile':
         toolCopy.execute = async (args: { path: string; content: string }) => {
-          const dir = args.path.substring(0, args.path.lastIndexOf('/'));
-          if (dir) {
-            await workspace.execute(`mkdir -p "${dir}"`);
+          if (diskRoot) {
+            // Resolve /repo/... paths to real disk paths
+            const resolvedPath = args.path.startsWith('/repo/')
+              ? path.join(diskRoot, args.path.slice(6))
+              : path.join(diskRoot, args.path);
+            await mkdir(path.dirname(resolvedPath), { recursive: true });
+            await writeFile(resolvedPath, args.content, 'utf-8');
+          } else {
+            const dir = args.path.substring(0, args.path.lastIndexOf('/'));
+            if (dir) {
+              await workspace.execute(`mkdir -p "${dir}"`);
+            }
+            const encoder = new TextEncoder();
+            await workspace.execute(`tee "${args.path}"`, {
+              stdin: encoder.encode(args.content),
+            });
           }
-          // Use tee with stdin to avoid shell escaping/heredoc issues
-          const encoder = new TextEncoder();
-          await workspace.execute(`tee "${args.path}"`, {
-            stdin: encoder.encode(args.content),
-          });
           return `Written ${args.path}`;
         };
         break;

@@ -10,7 +10,7 @@ export const runTarget = command({
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
-    tools: ['node', 'npm', 'npx'],
+    tools: ['node', 'npm'],
   },
   gates: [],
 });

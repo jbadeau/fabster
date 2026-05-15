@@ -10,12 +10,13 @@ export async function executeTask(
   agentDef: AgentDefinition,
   models: ModelMap,
   workspace: Workspace,
+  diskRoot?: string,
 ): Promise<{ text: string; finishReason: string }> {
   const reasoning = task.reasoning ?? 'medium';
   const model = models[reasoning];
 
   // Rebind agent tools to the real workspace
-  const tools = bindToolsToWorkspace(agentDef.tools, workspace);
+  const tools = bindToolsToWorkspace(agentDef.tools, workspace, diskRoot);
 
   const inputDescription = Object.entries(inputs)
     .map(([k, v]) => `- ${k}: ${String(v)}`)

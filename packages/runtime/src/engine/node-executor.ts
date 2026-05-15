@@ -68,7 +68,7 @@ export async function executeNode(
 
     logs.push(`Resolved agent: ${agent.name}`);
 
-    const result = await executeTask(def, resolvedInputs, agent, models, workspace);
+    const result = await executeTask(def, resolvedInputs, agent, models, workspace, cwd);
     if (result.text) {
       logs.push(result.text);
     }

@@ -102,7 +102,7 @@ const generateApiClient = command({
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
-    tools: ['node@22', 'npm', 'npx', 'java@21'],
+    tools: ['node@22', 'npm', 'java@21'],
   },
   gates: [successfulBuild()],
 });
@@ -136,7 +136,7 @@ After writing files, run: npx nx build api`,
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
-    tools: ['node', 'npm', 'npx'],
+    tools: ['node', 'npm'],
   },
   gates: [successfulBuild(), testsPass(), linted()],
 });
@@ -169,7 +169,7 @@ After writing files, run: npx nx build web`,
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
-    tools: ['node', 'npm', 'npx'],
+    tools: ['node', 'npm'],
   },
   gates: [successfulBuild(), testsPass(), linted(), humanApproved()],
 });
