@@ -48,6 +48,7 @@ export async function executeExternalAgentTask(
   inputs: Record<string, string | number | boolean>,
   agent: ExternalAgentDefinition,
   cwd: string,
+  onLog?: (message: string) => void,
 ): Promise<ExternalAgentExecutionResult> {
   const prompt = buildPrompt(task, inputs, agent, cwd);
   const { command, args = [], timeoutMs } = agent.adapter;
@@ -79,10 +80,20 @@ export async function executeExternalAgentTask(
 
     child.stdout.on('data', (chunk: string) => {
       stdout += chunk;
+      if (onLog) {
+        for (const line of chunk.split('\n').filter(Boolean)) {
+          onLog(line);
+        }
+      }
     });
 
     child.stderr.on('data', (chunk: string) => {
       stderr += chunk;
+      if (onLog) {
+        for (const line of chunk.split('\n').filter(Boolean)) {
+          onLog(`[stderr] ${line}`);
+        }
+      }
     });
 
     child.on('error', (error) => {

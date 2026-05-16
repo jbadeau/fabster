@@ -19,23 +19,29 @@ export async function executeNode(
   models: ModelMap,
   workspace: Workspace,
   cwd: string,
+  onLog?: (message: string) => void,
 ): Promise<NodeExecutionResult> {
   const logs: string[] = [];
   const outputs: Record<string, string | number | boolean> = {};
   const def = node.definition;
 
+  const log = (message: string) => {
+    logs.push(message);
+    onLog?.(message);
+  };
+
   if (def.kind === 'command') {
-    logs.push(`Executing command: ${def.name}`);
+    log(`Executing command: ${def.name}`);
 
     const commands =
       typeof def.run === 'string' ? [def.run] : [...def.run];
     for (const cmd of commands) {
-      logs.push(`> ${cmd}`);
+      log(`> ${cmd}`);
     }
 
     const result = await executeCommand(def, resolvedInputs, cwd);
-    if (result.stdout) logs.push(result.stdout);
-    if (result.stderr) logs.push(result.stderr);
+    if (result.stdout) log(result.stdout);
+    if (result.stderr) log(result.stderr);
 
     // For commands, pass declared output values from inputs
     // (the workflow author wires the known paths/values)
@@ -49,26 +55,26 @@ export async function executeNode(
   }
 
   if (def.kind === 'task') {
-    logs.push(`Executing task: ${def.name}`);
-    logs.push(`Reasoning level: ${def.reasoning ?? 'medium'}`);
+    log(`Executing task: ${def.name}`);
+    log(`Reasoning level: ${def.reasoning ?? 'medium'}`);
 
     const agent = resolveAgent(def, agents);
     if (!agent) {
-      logs.push(`ERROR: No agent found matching requirements`);
+      log(`ERROR: No agent found matching requirements`);
       for (const req of def.requirements) {
-        logs.push(`  - ${req.namespace}: ${JSON.stringify(req.filter)}`);
+        log(`  - ${req.namespace}: ${JSON.stringify(req.filter)}`);
       }
       return { success: false, logs, outputs };
     }
 
-    logs.push(`Resolved agent: ${agent.name}`);
+    log(`Resolved agent: ${agent.name}`);
 
     if (agent.kind === 'external-agent') {
-      logs.push(`External adapter: ${formatExternalAdapter(agent)}`);
-      const result = await executeExternalAgentTask(def, resolvedInputs, agent, cwd);
+      log(`External adapter: ${formatExternalAdapter(agent)}`);
+      const result = await executeExternalAgentTask(def, resolvedInputs, agent, cwd, onLog);
 
-      if (result.stdout) logs.push(result.stdout);
-      if (result.stderr) logs.push(result.stderr);
+      if (result.stdout) log(result.stdout);
+      if (result.stderr) log(result.stderr);
 
       collectDeclaredOutputs(def, resolvedInputs, outputs);
 
@@ -79,9 +85,9 @@ export async function executeNode(
       };
     }
 
-    const result = await executeTask(def, resolvedInputs, agent, models, workspace, cwd);
+    const result = await executeTask(def, resolvedInputs, agent, models, workspace, cwd, onLog);
     if (result.text) {
-      logs.push(result.text);
+      log(result.text);
     }
 
     // For tasks, pass declared output values from inputs

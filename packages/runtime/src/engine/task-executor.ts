@@ -11,6 +11,7 @@ export async function executeTask(
   models: ModelMap,
   workspace: Workspace,
   diskRoot?: string,
+  onLog?: (message: string) => void,
 ): Promise<{ text: string; finishReason: string }> {
   const reasoning = task.reasoning ?? 'medium';
   const model = models[reasoning];
@@ -52,14 +53,17 @@ export async function executeTask(
       if (toolCalls?.length) {
         for (const tc of toolCalls) {
           const input = typeof tc.input === 'object' ? JSON.stringify(tc.input).slice(0, 100) : '';
-          console.log(`    [tool] ${tc.toolName} ${input}`);
+          const msg = `[tool] ${tc.toolName} ${input}`;
+          if (onLog) { onLog(msg); } else { console.log(`    ${msg}`); }
         }
       }
       if (text) {
-        console.log(`    [text] ${text.slice(0, 120)}${text.length > 120 ? '...' : ''}`);
+        const msg = `[text] ${text.slice(0, 120)}${text.length > 120 ? '...' : ''}`;
+        if (onLog) { onLog(msg); } else { console.log(`    ${msg}`); }
       }
       if (finishReason === 'stop') {
-        console.log(`    [done] Agent finished`);
+        const msg = '[done] Agent finished';
+        if (onLog) { onLog(msg); } else { console.log(`    ${msg}`); }
       }
     },
   });

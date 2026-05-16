@@ -5,7 +5,7 @@ import { LogOutput } from '../components/log-output.js';
 describe('LogOutput', () => {
   it('renders empty state', () => {
     const { lastFrame } = render(<LogOutput logs={[]} />);
-    expect(lastFrame()).toContain('No output yet');
+    expect(lastFrame()).toContain('waiting...');
   });
 
   it('renders log lines', () => {

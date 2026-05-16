@@ -1,7 +1,7 @@
 import { Workspace } from '@struktoai/mirage-node';
 import { DiskResource } from '@struktoai/mirage-node';
 import type { InputValue, WorkflowDefinition } from '@fabster/core';
-import type { GateResult, NodeResult, NodeState, RunOptions, RunResult } from '../types.js';
+import type { GateResult, NodeResult, NodeState, RunOptions, RunResult, WorkflowEvent } from '../types.js';
 import { extractNodes } from './graph.js';
 import { executeNode } from './node-executor.js';
 import { provisionTools } from './mise.js';
@@ -51,10 +51,13 @@ export async function runWorkflow(
 ): Promise<RunResult> {
   const nodes = extractNodes(workflow);
   const repoCwd = extractCwd(workflow);
+  const emit = options.emitter
+    ? (data: WorkflowEvent) => { options.emitter!.emit('progress', data); }
+    : undefined;
 
   // Dry run
   if (options.dryRun) {
-    return {
+    const result: RunResult = {
       workflow: workflow.name,
       nodes: nodes.map((n) => ({
         id: n.id,
@@ -69,6 +72,8 @@ export async function runWorkflow(
       })),
       status: 'success',
     };
+    emit?.({ type: 'workflow:done', status: 'success' });
+    return result;
   }
 
   // Ensure repo has at least one commit
@@ -90,6 +95,7 @@ export async function runWorkflow(
     let reviewGates: GateResult[] = [];
 
     if (failed) {
+      emit?.({ type: 'node:state', nodeId: node.id, state: 'skipped', log: 'Skipped — previous node failed' });
       nodeResults.push({
         id: node.id, definition: def, state: 'skipped', branch: '',
         validationGates: [], reviewGates: [],
@@ -106,6 +112,7 @@ export async function runWorkflow(
         const outputs = collectDeclaredOutputs(def, resolvedInputs);
         nodeOutputs.set(node.id, outputs);
         logs.push(`Branch ${branch} already exists — skipping`);
+        emit?.({ type: 'node:state', nodeId: node.id, state: 'complete', log: `Branch ${branch} already exists — skipping` });
         nodeResults.push({
           id: node.id, definition: def, state: 'complete', branch,
           validationGates: [], reviewGates: [],
@@ -118,7 +125,12 @@ export async function runWorkflow(
       // === EXECUTING ===
       state = 'executing';
       logs.push(`[executing] ${def.kind}: ${def.name}`);
-      console.log(`  ⟳ ${node.id} [executing] ${def.kind}: ${def.name}`);
+      if (emit) {
+        emit({ type: 'node:state', nodeId: node.id, state: 'executing' });
+        emit({ type: 'node:log', nodeId: node.id, message: `[executing] ${def.kind}: ${def.name}` });
+      } else {
+        console.log(`  ⟳ ${node.id} [executing] ${def.kind}: ${def.name}`);
+      }
 
       // Create isolated worktree for this node
       const worktree = await createWorktree(repoCwd, workflow.name, node.id, previousBranch);
@@ -129,7 +141,9 @@ export async function runWorkflow(
       // Provision tools in the worktree
       const tools = def.permissions?.tools ?? [];
       if (tools.length > 0) {
-        logs.push(`Provisioning tools: ${tools.join(', ')}`);
+        const toolLog = `Provisioning tools: ${tools.join(', ')}`;
+        logs.push(toolLog);
+        emit?.({ type: 'node:log', nodeId: node.id, message: toolLog });
         await provisionTools(tools, worktreeCwd);
       }
 
@@ -140,7 +154,7 @@ export async function runWorkflow(
       );
 
       try {
-        const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, ws, worktreeCwd);
+        const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, ws, worktreeCwd, emit ? (msg) => emit({ type: 'node:log', nodeId: node.id, message: msg }) : undefined);
         logs.push(...execResult.logs);
 
         nodeOutputs.set(node.id, execResult.outputs);
@@ -148,6 +162,7 @@ export async function runWorkflow(
         if (!execResult.success) {
           state = 'failed';
           failed = true;
+          emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: 'Execution failed' });
           nodeResults.push({
             id: node.id, definition: def, state, branch,
             validationGates: [], reviewGates: [],
@@ -162,12 +177,17 @@ export async function runWorkflow(
 
         if (validation.length > 0) {
           state = 'validating';
-      console.log(`  ? ${node.id} [validating]`);
+          if (emit) {
+            emit({ type: 'node:state', nodeId: node.id, state: 'validating' });
+          } else {
+            console.log(`  ? ${node.id} [validating]`);
+          }
           logs.push(`[validating] Running ${validation.length} gate(s)`);
           validationGates = await runValidationGates(validation, worktreeCwd);
 
           for (const g of validationGates) {
             logs.push(`  ${g.passed ? '+' : 'x'} ${g.gate.kind}: ${g.detail}`);
+            emit?.({ type: 'node:gate', nodeId: node.id, gate: g });
           }
 
           const validationFailed = validationGates.some(
@@ -178,6 +198,7 @@ export async function runWorkflow(
             state = 'failed';
             failed = true;
             logs.push('[failed] Validation gates did not pass');
+            emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: 'Validation gates did not pass' });
             nodeResults.push({
               id: node.id, definition: def, state, branch,
               validationGates, reviewGates: [],
@@ -190,13 +211,19 @@ export async function runWorkflow(
 
         // === PUBLISHING ===
         state = 'publishing';
-      console.log(`  ^ ${node.id} [publishing]`);
+        if (emit) {
+          emit({ type: 'node:state', nodeId: node.id, state: 'publishing' });
+        } else {
+          console.log(`  ^ ${node.id} [publishing]`);
+        }
         const commitMessage = `fabster: ${def.name} — ${def.purpose}`;
         const sha = await commitChanges(worktreeCwd, commitMessage);
         if (sha) {
           logs.push(`[publishing] Committed: ${sha}`);
+          emit?.({ type: 'node:log', nodeId: node.id, message: `[publishing] Committed: ${sha}` });
         } else {
           logs.push('[publishing] No changes to commit');
+          emit?.({ type: 'node:log', nodeId: node.id, message: '[publishing] No changes to commit' });
         }
 
         try {
@@ -205,19 +232,25 @@ export async function runWorkflow(
             `[fabster] ${def.name}`, def.purpose,
           );
           mrUrl = mr ?? undefined;
-          if (mrUrl) logs.push(`[publishing] Created MR: ${mrUrl}`);
+          if (mrUrl) {
+            logs.push(`[publishing] Created MR: ${mrUrl}`);
+            emit?.({ type: 'node:mr', nodeId: node.id, mr: mrUrl });
+          }
         } catch {
           logs.push('[publishing] Skipped MR (no remote or gh not available)');
+          emit?.({ type: 'node:log', nodeId: node.id, message: '[publishing] Skipped MR (no remote or gh not available)' });
         }
 
         // === REVIEWING ===
         if (review.length > 0 && mrUrl) {
           state = 'reviewing';
+          emit?.({ type: 'node:state', nodeId: node.id, state: 'reviewing' });
           logs.push(`[reviewing] Checking ${review.length} review gate(s)`);
           reviewGates = await checkReviewGates(review, worktreeCwd, mrUrl);
 
           for (const g of reviewGates) {
             logs.push(`  ${g.passed ? '+' : '?'} ${g.gate.kind}: ${g.detail}`);
+            emit?.({ type: 'node:gate', nodeId: node.id, gate: g });
           }
 
           const reviewPending = reviewGates.some(
@@ -227,6 +260,7 @@ export async function runWorkflow(
           if (reviewPending) {
             state = 'gated';
             logs.push('[gated] Waiting for human approval');
+            emit?.({ type: 'node:state', nodeId: node.id, state: 'gated', log: 'Waiting for human approval' });
             nodeResults.push({
               id: node.id, definition: def, state, branch, mr: mrUrl,
               validationGates, reviewGates,
@@ -240,7 +274,11 @@ export async function runWorkflow(
 
         // === COMPLETE ===
         state = 'complete';
-      console.log(`  + ${node.id} [complete] (${Math.round((Date.now() - startTime) / 1000)}s)`);
+        if (emit) {
+          emit({ type: 'node:state', nodeId: node.id, state: 'complete' });
+        } else {
+          console.log(`  + ${node.id} [complete] (${Math.round((Date.now() - startTime) / 1000)}s)`);
+        }
         logs.push('[complete]');
 
         // Clean up worktree
@@ -258,6 +296,7 @@ export async function runWorkflow(
       logs.push(`ERROR: ${message}`);
       state = 'failed';
       failed = true;
+      emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: message });
     }
 
     nodeResults.push({
@@ -274,6 +313,8 @@ export async function runWorkflow(
     : nodeResults.some((n) => n.state === 'gated')
       ? 'gated'
       : 'success';
+
+  emit?.({ type: 'workflow:done', status: overallStatus });
 
   return { workflow: workflow.name, nodes: nodeResults, status: overallStatus };
 }

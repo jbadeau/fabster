@@ -1,27 +1,26 @@
 import { useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import type { WorkflowInfo } from '../types.js';
 import { NodeList } from './node-list.js';
-import { NodeDetails } from './node-details.js';
 import { LogOutput } from './log-output.js';
 
 interface AppProps {
   workflow: WorkflowInfo;
 }
 
-const STATUS_LABELS: Record<string, { text: string; color: string }> = {
-  running: { text: '~ running', color: 'yellow' },
-  success: { text: '+ complete', color: 'green' },
-  failed: { text: 'x failed', color: 'red' },
-  gated: { text: '? waiting', color: 'yellow' },
+const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
+  running: { icon: '\u25cf', color: 'yellow' },
+  success: { icon: '\u2713', color: 'green' },
+  failed: { icon: '\u2717', color: 'red' },
+  gated: { icon: '\u25cb', color: 'yellow' },
 };
-
-const SEPARATOR = '\u2500'.repeat(85);
 
 export function App({ workflow }: AppProps) {
   const { name, status, elapsed, nodes } = workflow;
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const { stdout } = useStdout();
+  const cols = stdout?.columns ?? 120;
 
   useInput((input, key) => {
     if (expanded) {
@@ -31,10 +30,10 @@ export function App({ workflow }: AppProps) {
       return;
     }
 
-    if (key.upArrow) {
+    if (key.upArrow || input === 'k') {
       setSelectedIndex((i) => Math.max(0, i - 1));
     }
-    if (key.downArrow) {
+    if (key.downArrow || input === 'j') {
       setSelectedIndex((i) => Math.min(nodes.length - 1, i + 1));
     }
     if (key.return || input === 'l') {
@@ -46,8 +45,9 @@ export function App({ workflow }: AppProps) {
   const completedCount = nodes.filter(
     (n) => n.state === 'complete' || n.state === 'gated',
   ).length;
-  const statusInfo = STATUS_LABELS[status] ?? { text: status, color: 'gray' };
+  const statusInfo = STATUS_ICONS[status] ?? { icon: '?', color: 'gray' };
   const workflowComplete = status === 'success';
+  const sep = '\u2500'.repeat(Math.max(cols - 4, 40));
 
   // Expanded log view
   if (expanded && selectedNode) {
@@ -55,100 +55,103 @@ export function App({ workflow }: AppProps) {
       <Box flexDirection="column" width="100%">
         <Box paddingX={1} justifyContent="space-between">
           <Box>
-            <Text bold>fabster</Text>
-            <Text>  </Text>
+            <Text bold color="cyan">fabster</Text>
+            <Text dimColor> {'\u203a'} </Text>
             <Text>{name}</Text>
-            <Text>  ·  </Text>
+            <Text dimColor> {'\u203a'} </Text>
             <Text bold>{selectedNode.id}</Text>
           </Box>
-          <Text color="gray">[ESC to back]</Text>
+          <Text dimColor>esc back</Text>
         </Box>
 
         <Box paddingX={1}>
-          <Text color="gray">{SEPARATOR}</Text>
+          <Text dimColor>{sep}</Text>
         </Box>
 
-        <Box flexDirection="column" flexGrow={1} paddingX={1}>
+        <Box flexDirection="column" flexGrow={1} paddingX={2}>
           <LogOutput logs={selectedNode.logs} expanded />
         </Box>
 
         <Box paddingX={1}>
-          <Text color="gray">{SEPARATOR}</Text>
+          <Text dimColor>{sep}</Text>
         </Box>
 
         <Box paddingX={1}>
-          <Text color="gray">{'\u2191\u2193'} scroll  ·  ESC back to dashboard  ·  / search</Text>
+          <Text dimColor>esc back  {'\u00b7'}  q quit</Text>
         </Box>
       </Box>
     );
   }
 
-  // Standard 3-column dashboard
+  // Two-panel layout
+  const sidebarWidth = Math.max(30, Math.min(44, Math.floor(cols * 0.30)));
+
   return (
     <Box flexDirection="column" width="100%">
       {/* Header */}
       <Box paddingX={1} justifyContent="space-between">
         <Box>
-          <Text bold>fabster</Text>
-          <Text>  </Text>
-          <Text>{name}</Text>
+          <Text bold color="cyan">fabster</Text>
+          <Text dimColor> {'\u203a'} </Text>
+          <Text bold>{name}</Text>
         </Box>
-        <Text color={statusInfo.color}>{statusInfo.text}</Text>
+        <Box>
+          <Text color={statusInfo.color}>{statusInfo.icon} {status}</Text>
+          <Text dimColor>  {formatDuration(elapsed)}</Text>
+        </Box>
       </Box>
 
       <Box paddingX={1}>
-        <Text color="gray">{SEPARATOR}</Text>
+        <Text dimColor>{sep}</Text>
       </Box>
 
-      {/* Three column layout */}
+      {/* Two-panel layout */}
       <Box minHeight={16}>
-        {/* Left: Node list */}
-        <Box flexDirection="column" width={24} borderStyle="single" borderColor="gray">
+        {/* Left: Node list with inline details */}
+        <Box flexDirection="column" width={sidebarWidth} paddingX={1}>
           <NodeList nodes={nodes} selectedIndex={selectedIndex} />
         </Box>
 
-        {/* Center: Details */}
-        <Box flexDirection="column" width={32} borderStyle="single" borderColor="gray">
-          <NodeDetails
-            node={selectedNode}
-            allNodes={nodes}
-            workflowComplete={workflowComplete}
-          />
-        </Box>
-
         {/* Right: Logs */}
-        <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="gray">
+        <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="gray" borderRight={false} borderTop={false} borderBottom={false} paddingLeft={1}>
           <LogOutput logs={selectedNode?.logs ?? []} />
         </Box>
       </Box>
 
       {/* Footer */}
       <Box paddingX={1}>
-        <Text color="gray">{SEPARATOR}</Text>
+        <Text dimColor>{sep}</Text>
       </Box>
 
-      <Box paddingX={1}>
-        <Text>{completedCount}/{nodes.length} complete</Text>
-        <Text>  ·  </Text>
-        <Text>elapsed {formatDuration(elapsed)}</Text>
-        {status === 'gated' && selectedNode?.mr && (
-          <>
-            <Text>  ·  </Text>
-            <Text color="yellow">waiting on approval  ·  {selectedNode.mr}</Text>
-          </>
-        )}
-        {status === 'success' && (
-          <>
-            <Text>  ·  </Text>
-            <Text color="green">{nodes.length} stacked MRs  ·  ready to merge</Text>
-          </>
-        )}
-      </Box>
-
-      <Box paddingX={1}>
-        <Text color="gray">
-          {'\u2191\u2193'} navigate  ·  enter expand logs  ·  r retry  ·  q quit
-          {workflowComplete ? '  ·  m merge all' : ''}
+      <Box paddingX={1} justifyContent="space-between">
+        <Box>
+          <Text>{completedCount}</Text>
+          <Text dimColor>/</Text>
+          <Text>{nodes.length}</Text>
+          {selectedNode && (
+            <>
+              <Text dimColor>  {'\u00b7'}  </Text>
+              <Text dimColor>&gt;</Text>
+              <Text bold>{selectedNode.id}</Text>
+              <Text dimColor> {selectedNode.state}</Text>
+            </>
+          )}
+          {status === 'gated' && selectedNode?.mr && (
+            <>
+              <Text dimColor>  {'\u00b7'}  </Text>
+              <Text color="yellow">awaiting approval</Text>
+            </>
+          )}
+          {status === 'success' && (
+            <>
+              <Text dimColor>  {'\u00b7'}  </Text>
+              <Text color="green">{nodes.length} stacked MRs ready</Text>
+            </>
+          )}
+        </Box>
+        <Text dimColor>
+          j/k navigate  {'\u00b7'}  enter logs  {'\u00b7'}  q quit
+          {workflowComplete ? `  ${'\u00b7'}  m merge` : ''}
         </Text>
       </Box>
     </Box>

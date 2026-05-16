@@ -36,10 +36,10 @@ describe('NodeList', () => {
     expect(output).toContain('step-2');
   });
 
-  it('shows pipe connectors between nodes', () => {
+  it('shows selection indicator for selected node', () => {
     const { lastFrame } = render(<NodeList nodes={mockNodes} selectedIndex={0} />);
     const output = lastFrame();
 
-    expect(output).toContain('|');
+    expect(output).toContain('>');
   });
 });

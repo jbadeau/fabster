@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import type { LanguageModel } from 'ai';
 import type {
   AgentDefinition,
@@ -18,6 +19,22 @@ export type NodeState =
   | 'gated'
   | 'skipped';
 
+export type WorkflowEvent =
+  | { type: 'node:state'; nodeId: string; state: NodeState; log?: string }
+  | { type: 'node:log'; nodeId: string; message: string }
+  | { type: 'node:gate'; nodeId: string; gate: GateResult }
+  | { type: 'node:mr'; nodeId: string; mr: string }
+  | { type: 'workflow:done'; status: 'success' | 'failed' | 'gated' };
+
+export interface WorkflowEmitter extends EventEmitter {
+  emit(event: 'progress', data: WorkflowEvent): boolean;
+  on(event: 'progress', listener: (data: WorkflowEvent) => void): this;
+}
+
+export function createWorkflowEmitter(): WorkflowEmitter {
+  return new EventEmitter() as WorkflowEmitter;
+}
+
 export interface ModelMap {
   readonly low: LanguageModel;
   readonly medium: LanguageModel;
@@ -29,6 +46,7 @@ export interface RunOptions {
   readonly models: ModelMap;
   readonly ui?: boolean;
   readonly dryRun?: boolean;
+  readonly emitter?: WorkflowEmitter;
 }
 
 export interface RunResult {

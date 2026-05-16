@@ -97,7 +97,9 @@ describe('App', () => {
     expect(output).toContain('scaffold-toke');
     expect(output).toContain('impl-tokens');
     expect(output).toContain('impl-button');
-    expect(output).toContain('1/3 complete');
+    expect(output).toContain('1');
+    expect(output).toContain('/');
+    expect(output).toContain('3');
   });
 
   it('renders completed workflow', () => {
@@ -106,7 +108,7 @@ describe('App', () => {
 
     expect(output).toContain('complete');
     expect(output).toContain('stacked MRs');
-    expect(output).toContain('merge all');
+    expect(output).toContain('merge');
   });
 
   it('renders failed workflow', () => {

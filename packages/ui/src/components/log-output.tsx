@@ -6,23 +6,20 @@ interface LogOutputProps {
   expanded?: boolean;
 }
 
-function colorForPrefix(line: string): { color: string; prefix: string; rest: string } {
-  if (line.startsWith('[think]')) {
-    return { color: 'blue', prefix: '[think]', rest: line.slice(7) };
-  }
-  if (line.startsWith('[tool]')) {
-    return { color: 'magenta', prefix: '[tool]', rest: line.slice(6) };
-  }
-  if (line.startsWith('[result]')) {
-    return { color: 'green', prefix: '[result]', rest: line.slice(8) };
-  }
-  if (line.startsWith('ERROR') || line.startsWith('error')) {
-    return { color: 'red', prefix: '', rest: line };
-  }
-  if (line.startsWith('>')) {
-    return { color: 'cyan', prefix: '>', rest: line.slice(1) };
-  }
-  return { color: 'gray', prefix: '', rest: line };
+function colorForLine(line: string): { color: string; dim: boolean } {
+  if (line.startsWith('[tool]')) return { color: 'magenta', dim: false };
+  if (line.startsWith('[text]')) return { color: 'white', dim: false };
+  if (line.startsWith('[done]')) return { color: 'green', dim: false };
+  if (line.startsWith('[think]')) return { color: 'blue', dim: false };
+  if (line.startsWith('[result]')) return { color: 'green', dim: false };
+  if (line.startsWith('[executing]')) return { color: 'yellow', dim: false };
+  if (line.startsWith('[validating]')) return { color: 'cyan', dim: false };
+  if (line.startsWith('[publishing]')) return { color: 'blue', dim: false };
+  if (line.startsWith('[reviewing]')) return { color: 'yellow', dim: false };
+  if (line.startsWith('[complete]')) return { color: 'green', dim: false };
+  if (line.startsWith('[failed]') || line.startsWith('ERROR') || line.startsWith('error')) return { color: 'red', dim: false };
+  if (line.startsWith('>')) return { color: 'cyan', dim: false };
+  return { color: '', dim: true };
 }
 
 export function LogOutput({ logs, maxLines = 20, expanded = false }: LogOutputProps) {
@@ -30,23 +27,13 @@ export function LogOutput({ logs, maxLines = 20, expanded = false }: LogOutputPr
   const visible = logs.slice(-limit);
 
   return (
-    <Box flexDirection="column" paddingX={1}>
-      {!expanded && <Text bold>Logs</Text>}
+    <Box flexDirection="column">
       {!expanded && <Text> </Text>}
-      {visible.length === 0 && <Text color="gray">No output yet</Text>}
+      {visible.length === 0 && <Text dimColor>waiting...</Text>}
       {visible.map((line, i) => {
-        const { color, prefix, rest } = colorForPrefix(line);
+        const { color, dim } = colorForLine(line);
         return (
-          <Box key={i}>
-            {prefix ? (
-              <>
-                <Text color={color} bold>{prefix}</Text>
-                <Text color={color}>{rest}</Text>
-              </>
-            ) : (
-              <Text color={color} wrap="truncate">{rest}</Text>
-            )}
-          </Box>
+          <Text key={i} color={color || undefined} dimColor={dim} wrap="truncate">{line}</Text>
         );
       })}
     </Box>
