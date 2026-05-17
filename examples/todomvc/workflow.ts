@@ -192,64 +192,62 @@ export default workflow({
     '/repo': new DiskResource({ root: '/Users/jbadeau/git/fabster-demo' }),
   }),
   graph: (ctx) => {
-    // Step 1: Initialize Nx workspace
+    // Initialize Nx workspace
     const init = ctx.run('init-workspace', initWorkspace, {
       name: 'todomvc',
     });
 
-    // Step 2: Add Nx plugins
+    // Parallel: install plugins (independent of each other)
     const addReact = ctx.run('add-react', addPlugin, {
       plugin: '@nx/react',
     }, { dependsOn: [init] });
 
     const addNode = ctx.run('add-node', addPlugin, {
       plugin: '@nx/node',
+    }, { dependsOn: [init] });
+
+    // Left branch: scaffold frontend app (needs react plugin)
+    const frontendApp = ctx.run('generate-frontend', generateApp, {
+      generator: '@nx/react:app',
+      name: 'web',
+      directory: 'apps/web',
     }, { dependsOn: [addReact] });
 
-    // Step 3: Agent creates API spec project with OpenAPI yaml
+    // Right branch: API spec + backend (needs node plugin)
     const spec = ctx.run('write-openapi-spec', generateOpenApiSpec, {
       project: 'api-spec',
       specPath: 'packages/api-spec/todo.openapi.yaml',
     }, { dependsOn: [addNode] });
 
-    // Step 4: Generate the API client library
+    const backendApp = ctx.run('generate-backend', generateApp, {
+      generator: '@nx/node:app',
+      name: 'api',
+      directory: 'apps/api',
+    }, { dependsOn: [addNode] });
+
+    // API client chain (needs spec)
     const clientLib = ctx.run('generate-client-lib', generateLibrary, {
       generator: '@nx/js:library',
       name: 'api-client',
       directory: 'packages/api-client',
     }, { dependsOn: [spec] });
 
-    // Step 5: Generate API client from spec (uses output from step 3)
     const client = ctx.run('generate-api-client', generateApiClient, {
       specPath: spec.output('specPath'),
       outputDir: 'packages/api-client/src/generated',
     }, { dependsOn: [clientLib] });
 
-    // Step 7: Generate backend app
-    const backendApp = ctx.run('generate-backend', generateApp, {
-      generator: '@nx/node:app',
-      name: 'api',
-      directory: 'apps/api',
-    }, { dependsOn: [client] });
-
-    // Step 8: Implement backend
-    const backend = ctx.run('implement-backend', implementBackend, {
+    // Implement backend (needs backend app + spec)
+    ctx.run('implement-backend', implementBackend, {
       project: 'api',
       specProject: 'api-spec',
-    }, { dependsOn: [backendApp] });
+    }, { dependsOn: [backendApp, spec] });
 
-    // Step 9: Generate frontend app
-    const frontendApp = ctx.run('generate-frontend', generateApp, {
-      generator: '@nx/react:app',
-      name: 'web',
-      directory: 'apps/web',
-    }, { dependsOn: [backend] });
-
-    // Step 10: Implement frontend
+    // Implement frontend (needs frontend app + api client)
     ctx.run('implement-frontend', implementFrontend, {
       project: 'web',
       clientProject: 'api-client',
-    }, { dependsOn: [frontendApp] });
+    }, { dependsOn: [frontendApp, client] });
   },
 });
 

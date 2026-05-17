@@ -73,66 +73,72 @@ const nodeTypes = {
   taskNode: TaskNode,
 };
 
-// TodoMVC workflow from examples/todomvc/workflow.ts
+// TodoMVC workflow — parallelized DAG
 const initialNodes: Node[] = [
   {
     id: 'init-workspace',
     type: 'taskNode',
-    position: { x: 300, y: 0 },
+    position: { x: 350, y: 0 },
     data: { label: 'Init Workspace', type: 'command' },
   },
+  // Parallel: left (frontend) and right (API + backend)
   {
     id: 'add-react',
     type: 'taskNode',
-    position: { x: 300, y: 100 },
+    position: { x: 100, y: 120 },
     data: { label: 'Add React Plugin', type: 'command' },
   },
   {
     id: 'add-node',
     type: 'taskNode',
-    position: { x: 300, y: 200 },
+    position: { x: 600, y: 120 },
     data: { label: 'Add Node Plugin', type: 'command' },
   },
+  // Left branch: frontend scaffolding
+  {
+    id: 'generate-frontend',
+    type: 'taskNode',
+    position: { x: 100, y: 240 },
+    data: { label: 'Generate Frontend App', type: 'command' },
+  },
+  // Right branch splits: API spec + backend scaffolding
   {
     id: 'write-openapi-spec',
     type: 'taskNode',
-    position: { x: 300, y: 300 },
+    position: { x: 450, y: 240 },
     data: { label: 'Write OpenAPI Spec', type: 'task', reasoning: 'medium' },
   },
   {
+    id: 'generate-backend',
+    type: 'taskNode',
+    position: { x: 750, y: 240 },
+    data: { label: 'Generate Backend App', type: 'command' },
+  },
+  // API client chain
+  {
     id: 'generate-client-lib',
     type: 'taskNode',
-    position: { x: 300, y: 400 },
+    position: { x: 450, y: 360 },
     data: { label: 'Generate Client Lib', type: 'command' },
   },
   {
     id: 'generate-api-client',
     type: 'taskNode',
-    position: { x: 300, y: 500 },
+    position: { x: 450, y: 480 },
     data: { label: 'Generate API Client', type: 'command' },
   },
-  {
-    id: 'generate-backend',
-    type: 'taskNode',
-    position: { x: 300, y: 600 },
-    data: { label: 'Generate Backend App', type: 'command' },
-  },
+  // Implement backend (needs spec + backend app)
   {
     id: 'implement-backend',
     type: 'taskNode',
-    position: { x: 300, y: 700 },
+    position: { x: 700, y: 480 },
     data: { label: 'Implement Backend', type: 'task', reasoning: 'high' },
   },
-  {
-    id: 'generate-frontend',
-    type: 'taskNode',
-    position: { x: 300, y: 800 },
-    data: { label: 'Generate Frontend App', type: 'command' },
-  },
+  // Implement frontend (needs frontend app + api client)
   {
     id: 'implement-frontend',
     type: 'taskNode',
-    position: { x: 300, y: 900 },
+    position: { x: 300, y: 620 },
     data: { label: 'Implement Frontend', type: 'task', reasoning: 'high' },
   },
 ];
@@ -146,15 +152,23 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
 };
 
 const initialEdges: Edge[] = [
+  // init → parallel plugin installs
   { id: 'e-init-react', source: 'init-workspace', target: 'add-react' },
-  { id: 'e-react-node', source: 'add-react', target: 'add-node' },
+  { id: 'e-init-node', source: 'init-workspace', target: 'add-node' },
+  // Left: react → frontend
+  { id: 'e-react-frontend', source: 'add-react', target: 'generate-frontend' },
+  // Right: node → spec + backend (parallel)
   { id: 'e-node-spec', source: 'add-node', target: 'write-openapi-spec' },
+  { id: 'e-node-backend', source: 'add-node', target: 'generate-backend' },
+  // Spec → client chain
   { id: 'e-spec-clientlib', source: 'write-openapi-spec', target: 'generate-client-lib' },
   { id: 'e-clientlib-client', source: 'generate-client-lib', target: 'generate-api-client' },
-  { id: 'e-client-backend', source: 'generate-api-client', target: 'generate-backend' },
-  { id: 'e-backend-impl', source: 'generate-backend', target: 'implement-backend' },
-  { id: 'e-impl-frontend', source: 'implement-backend', target: 'generate-frontend' },
-  { id: 'e-frontend-impl', source: 'generate-frontend', target: 'implement-frontend' },
+  // Implement backend needs spec + backend app
+  { id: 'e-spec-implbackend', source: 'write-openapi-spec', target: 'implement-backend' },
+  { id: 'e-backend-implbackend', source: 'generate-backend', target: 'implement-backend' },
+  // Implement frontend needs frontend app + api client
+  { id: 'e-frontend-implfrontend', source: 'generate-frontend', target: 'implement-frontend' },
+  { id: 'e-client-implfrontend', source: 'generate-api-client', target: 'implement-frontend' },
 ];
 
 export function ComposePage() {
