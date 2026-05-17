@@ -125,9 +125,12 @@ export function RunDetailPage() {
       if (!firstRow) return;
       const containerRect = container.getBoundingClientRect();
       const timelineRect = firstRow.getBoundingClientRect();
+      const style = getComputedStyle(firstRow);
+      const paddingLeft = parseFloat(style.paddingLeft) || 0;
+      const paddingRight = parseFloat(style.paddingRight) || 0;
       setArrowDimensions({
-        timelineLeft: timelineRect.left - containerRect.left,
-        timelineWidth: timelineRect.width,
+        timelineLeft: timelineRect.left - containerRect.left + paddingLeft,
+        timelineWidth: timelineRect.width - paddingLeft - paddingRight,
         rowHeight: firstRow.parentElement?.offsetHeight ?? 40,
       });
     };
@@ -214,7 +217,7 @@ export function RunDetailPage() {
         {arrowDimensions && (
           <svg className="absolute inset-0 pointer-events-none z-10" width="100%" height="100%">
             <defs>
-              <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">
+              <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
                 <polygon points="0 0, 6 2, 0 4" className="fill-muted-foreground/50" />
               </marker>
             </defs>
