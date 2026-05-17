@@ -416,20 +416,6 @@ function PropertiesPanel({
 
         <Separator />
 
-        {/* Purpose / Prompt (tasks) */}
-        {isTask && (
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Prompt</Label>
-            <Textarea
-              value={data.purpose ?? ''}
-              onChange={(e) => onUpdate({ purpose: e.target.value })}
-              rows={6}
-              className="text-sm"
-              placeholder="Describe what the agent should do..."
-            />
-          </div>
-        )}
-
         {/* Inputs */}
         {data.inputs && data.inputs.length > 0 && (
           <>
@@ -447,6 +433,23 @@ function PropertiesPanel({
                   }}
                 />
               ))}
+            </div>
+          </>
+        )}
+
+        {/* Purpose / Prompt (tasks, after inputs) */}
+        {isTask && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">Prompt</Label>
+              <Textarea
+                value={data.purpose ?? ''}
+                onChange={(e) => onUpdate({ purpose: e.target.value })}
+                rows={6}
+                className="text-sm"
+                placeholder="Describe what the agent should do..."
+              />
             </div>
           </>
         )}
