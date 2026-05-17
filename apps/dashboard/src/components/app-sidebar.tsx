@@ -24,28 +24,28 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/",
       icon: (
         <LayoutDashboardIcon />
       ),
     },
     {
       title: "Compose",
-      url: "#",
+      url: "/compose",
       icon: (
         <PenLineIcon />
       ),
     },
     {
       title: "Runs",
-      url: "#",
+      url: "/runs",
       icon: (
         <PlayIcon />
       ),
     },
     {
       title: "Agents",
-      url: "#",
+      url: "/agents",
       icon: (
         <BotIcon />
       ),
@@ -54,21 +54,21 @@ const data = {
   catalog: [
     {
       name: "Workflows",
-      url: "#",
+      url: "/catalog/workflows",
       icon: (
         <ListIcon />
       ),
     },
     {
       name: "Tasks",
-      url: "#",
+      url: "/catalog/tasks",
       icon: (
         <ClipboardListIcon />
       ),
     },
     {
       name: "Skills",
-      url: "#",
+      url: "/catalog/skills",
       icon: (
         <SparklesIcon />
       ),
