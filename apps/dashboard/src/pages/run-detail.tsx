@@ -4,7 +4,6 @@ import { ArrowLeft, Clock, CircleCheck, CircleX, CircleDot, CircleMinus, Loader,
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Tooltip,
@@ -116,10 +115,6 @@ export function RunDetailPage() {
     ...run.nodes.map((n) => n.startOffset + n.duration),
   );
 
-  // Current execution time (furthest point reached by any active/complete node)
-  const currentTime = run.status === 'running'
-    ? Math.max(...run.nodes.filter((n) => n.status !== 'pending').map((n) => n.startOffset + n.duration))
-    : null;
 
   // Time markers
   const markerCount = 6;
@@ -162,8 +157,14 @@ export function RunDetailPage() {
       <div className="flex-1 rounded-lg border overflow-auto">
         {/* Time axis */}
         <div className="flex border-b bg-muted/30">
-          <div className="w-48 shrink-0 px-3 py-2 text-xs font-medium text-muted-foreground">
+          <div className="w-44 shrink-0 px-3 py-2 text-xs font-medium text-muted-foreground">
             Node
+          </div>
+          <div className="w-24 shrink-0 px-2 py-2 text-xs font-medium text-muted-foreground">
+            Status
+          </div>
+          <div className="w-14 shrink-0 px-2 py-2 text-xs font-medium text-muted-foreground text-right">
+            Time
           </div>
           <div className="flex-1 flex relative px-2 py-2">
             {markers.map((t) => (
@@ -175,18 +176,6 @@ export function RunDetailPage() {
                 {formatSeconds(t)}
               </div>
             ))}
-            {/* Now marker in header */}
-            {currentTime !== null && (
-              <div
-                className="absolute text-[10px] font-medium text-primary tabular-nums"
-                style={{ left: `${(currentTime / maxTime) * 100}%`, transform: 'translateX(-50%)' }}
-              >
-                Now
-              </div>
-            )}
-          </div>
-          <div className="w-16 shrink-0 px-3 py-2 text-xs font-medium text-muted-foreground text-right">
-            Time
           </div>
         </div>
 
@@ -199,12 +188,22 @@ export function RunDetailPage() {
           return (
             <div key={node.id} className={`flex items-center border-b last:border-b-0 hover:bg-muted/30 cursor-pointer ${selectedNodeId === node.id ? 'bg-muted/50' : ''}`} onClick={() => setSelectedNodeId(selectedNodeId === node.id ? null : node.id)}>
               {/* Node name */}
-              <div className="w-48 shrink-0 px-3 py-2.5 flex items-center gap-2">
-                {STATUS_ICON[node.status]}
+              <div className="w-44 shrink-0 px-3 py-2.5 flex items-center gap-2">
                 <div className="flex flex-col min-w-0">
                   <span className="text-sm font-medium truncate">{node.name}</span>
                   <span className="text-[10px] text-muted-foreground truncate">{node.definition}</span>
                 </div>
+              </div>
+
+              {/* Status */}
+              <div className="w-24 shrink-0 px-2 py-2.5 flex items-center gap-1.5">
+                {STATUS_ICON[node.status]}
+                <span className="text-xs text-muted-foreground">{node.status}</span>
+              </div>
+
+              {/* Time */}
+              <div className="w-14 shrink-0 px-2 py-2.5 text-right text-xs text-muted-foreground tabular-nums">
+                {isPending ? '-' : formatSeconds(node.duration)}
               </div>
 
               {/* Bar */}
@@ -218,13 +217,6 @@ export function RunDetailPage() {
                   />
                 ))}
 
-                {/* Now marker */}
-                {currentTime !== null && (
-                  <div
-                    className="absolute top-0 bottom-0 w-px bg-primary z-10"
-                    style={{ left: `${(currentTime / maxTime) * 100}%` }}
-                  />
-                )}
 
                 {!isPending && (
                   <Tooltip>
@@ -250,96 +242,51 @@ export function RunDetailPage() {
                 )}
               </div>
 
-              {/* Duration */}
-              <div className="w-16 shrink-0 px-3 py-2.5 text-right text-xs text-muted-foreground tabular-nums">
-                {isPending ? '-' : formatSeconds(node.duration)}
-              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Node detail panel (right) */}
+      {/* Properties panel (right) */}
       {selectedNode && (
-        <NodeDetailPanel node={selectedNode} onClose={() => setSelectedNodeId(null)} />
-      )}
-      </div>
-    </div>
-  );
-}
-
-function NodeDetailPanel({ node, onClose }: { node: RunNode; onClose: () => void }) {
-  return (
-    <div className="w-80 shrink-0 border-l bg-card overflow-y-auto flex flex-col">
-      {/* Panel header */}
-      <div className="flex items-center justify-between p-3 border-b">
-        <div className="flex items-center gap-2 min-w-0">
-          {STATUS_ICON[node.status]}
-          <span className="font-medium text-sm truncate">{node.name}</span>
-        </div>
-        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="logs" className="flex-1 flex flex-col">
-        <TabsList className="w-full justify-start rounded-none border-b px-3">
-          <TabsTrigger value="logs">Logs</TabsTrigger>
-          <TabsTrigger value="properties">Properties</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="logs" className="flex-1 overflow-y-auto p-3 m-0">
-          {node.logs && node.logs.length > 0 ? (
-            <div className="flex flex-col gap-1 font-mono text-xs">
-              {node.logs.map((line, i) => (
-                <span key={i} className={logColor(line)}>{line}</span>
-              ))}
+        <div className="w-72 shrink-0 border-l bg-card overflow-y-auto">
+          <div className="flex items-center justify-between p-3 border-b">
+            <div className="flex items-center gap-2 min-w-0">
+              {STATUS_ICON[selectedNode.status]}
+              <span className="font-medium text-sm truncate">{selectedNode.name}</span>
             </div>
-          ) : (
-            <span className="text-xs text-muted-foreground">No logs yet</span>
-          )}
-        </TabsContent>
-
-        <TabsContent value="properties" className="flex-1 overflow-y-auto p-3 m-0">
-          <div className="flex flex-col gap-3">
-            {/* Definition */}
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setSelectedNodeId(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="p-3 flex flex-col gap-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Definition</span>
-              <span className="text-sm">{node.definition}</span>
+              <span className="text-sm">{selectedNode.definition}</span>
             </div>
-
-            {/* Type + Reasoning */}
             <div className="flex gap-2">
-              <Badge variant="secondary">{node.type}</Badge>
-              {node.reasoning && <Badge variant="outline">{node.reasoning}</Badge>}
+              <Badge variant="secondary">{selectedNode.type}</Badge>
+              {selectedNode.reasoning && <Badge variant="outline">{selectedNode.reasoning}</Badge>}
             </div>
-
-            {/* Agent */}
-            {node.agent && (
+            {selectedNode.agent && (
               <div className="flex items-center gap-2">
                 <Avatar className="h-5 w-5">
-                  <AvatarFallback className="text-[9px]">{node.agent.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="text-[9px]">{selectedNode.agent.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm">{node.agent}</span>
+                <span className="text-sm">{selectedNode.agent}</span>
               </div>
             )}
-
-            {/* Status + Duration */}
             <div className="flex flex-col gap-0.5">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Timing</span>
               <span className="text-sm">
-                {node.status === 'pending' ? 'Waiting' : `${formatSeconds(node.duration)} (started at ${formatSeconds(node.startOffset)})`}
+                {selectedNode.status === 'pending' ? 'Waiting' : `${formatSeconds(selectedNode.duration)} (started at ${formatSeconds(selectedNode.startOffset)})`}
               </span>
             </div>
-
             <Separator />
-
-            {/* Inputs */}
-            {node.inputs && node.inputs.length > 0 && (
+            {selectedNode.inputs && selectedNode.inputs.length > 0 && (
               <div className="flex flex-col gap-1.5">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Inputs</span>
-                {node.inputs.map((input) => (
+                {selectedNode.inputs.map((input) => (
                   <div key={input.name} className="flex justify-between text-xs">
                     <span className="text-muted-foreground">{input.name}</span>
                     <span className="font-mono truncate ml-2">{input.value}</span>
@@ -347,17 +294,15 @@ function NodeDetailPanel({ node, onClose }: { node: RunNode; onClose: () => void
                 ))}
               </div>
             )}
-
-            {/* Rules */}
-            {node.rules && node.rules.length > 0 && (
+            {selectedNode.rules && selectedNode.rules.length > 0 && (
               <>
                 <Separator />
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Rules</span>
                   <div className="flex flex-wrap gap-1">
-                    {node.rules.map((rule) => (
+                    {selectedNode.rules.map((rule) => (
                       <Badge key={rule} variant="outline" className="text-xs">
-                        {node.status === 'complete' ? '✓' : '○'} {rule}
+                        {selectedNode.status === 'complete' ? '✓' : '○'} {rule}
                       </Badge>
                     ))}
                   </div>
@@ -365,8 +310,28 @@ function NodeDetailPanel({ node, onClose }: { node: RunNode; onClose: () => void
               </>
             )}
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
+      </div>
+
+      {/* Logs panel (bottom, full width) */}
+      {selectedNode && (
+        <div className="shrink-0 border-t bg-card max-h-48 overflow-y-auto px-4 lg:px-6 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Logs</span>
+            <span className="text-xs text-muted-foreground">— {selectedNode.name}</span>
+          </div>
+          {selectedNode.logs && selectedNode.logs.length > 0 ? (
+            <div className="flex flex-col gap-0.5 font-mono text-xs">
+              {selectedNode.logs.map((line, i) => (
+                <span key={i} className={logColor(line)}>{line}</span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">No logs yet</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
