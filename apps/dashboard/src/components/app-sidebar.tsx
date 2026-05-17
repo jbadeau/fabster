@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, ClipboardListIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
+import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, ClipboardListIcon, SparklesIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
 
 const data = {
   user: {
@@ -64,6 +64,13 @@ const data = {
       url: "#",
       icon: (
         <ClipboardListIcon />
+      ),
+    },
+    {
+      name: "Skills",
+      url: "#",
+      icon: (
+        <SparklesIcon />
       ),
     },
   ],
