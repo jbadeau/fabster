@@ -17,9 +17,9 @@ import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, Clipboar
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "jbadeau",
+    email: "jose.badeau@gmail.com",
+    avatar: "",
   },
   navMain: [
     {
