@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Clock, CircleCheck, CircleX, CircleDot, CircleMinus, Loader, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ interface RunNode {
   rules?: string[];
   logs?: string[];
   mr?: { number: number; status: 'open' | 'merged' | 'closed'; branch: string };
+  dependsOn?: string[];
 }
 
 interface RunData {
@@ -66,15 +67,15 @@ const MOCK_RUNS: Record<string, RunData> = {
     startedAt: '2 min ago',
     nodes: [
       { id: 'init-workspace', name: 'Init Workspace', definition: 'nx:init-workspace', type: 'command', status: 'complete', startOffset: 0, duration: 12, inputs: [{ name: 'name', value: 'todomvc' }], logs: ['> npx create-nx-workspace todomvc --preset=apps', '[complete] Workspace created'], mr: { number: 140, status: 'merged', branch: 'fabster/create-todomvc/init-workspace' } },
-      { id: 'add-react', name: 'Add React Plugin', definition: 'nx:add-plugin', type: 'command', status: 'complete', startOffset: 12, duration: 8, inputs: [{ name: 'plugin', value: '@nx/react' }], logs: ['> npx nx add @nx/react', '[complete] Plugin added'], mr: { number: 141, status: 'merged', branch: 'fabster/create-todomvc/add-react' } },
-      { id: 'add-node', name: 'Add Node Plugin', definition: 'nx:add-plugin', type: 'command', status: 'complete', startOffset: 12, duration: 6, inputs: [{ name: 'plugin', value: '@nx/node' }], logs: ['> npx nx add @nx/node', '[complete] Plugin added'], mr: { number: 142, status: 'merged', branch: 'fabster/create-todomvc/add-node' } },
-      { id: 'generate-frontend', name: 'Generate Frontend', definition: 'nx:generate-app', type: 'command', status: 'complete', startOffset: 20, duration: 10, inputs: [{ name: 'generator', value: '@nx/react:app' }, { name: 'name', value: 'web' }], logs: ['> npx nx g @nx/react:app web --directory=apps/web', '[complete] App generated'], mr: { number: 143, status: 'merged', branch: 'fabster/create-todomvc/generate-frontend' } },
-      { id: 'write-openapi-spec', name: 'Write API Spec', definition: 'openapi:generate-spec', type: 'task', status: 'complete', agent: 'Smith', reasoning: 'medium', startOffset: 18, duration: 83, inputs: [{ name: 'project', value: 'api-spec' }, { name: 'specPath', value: 'packages/api-spec/todo.openapi.yaml' }], rules: ['linted', 'conformant'], logs: ['[tool] writeFile /repo/packages/api-spec/project.json', '[tool] writeFile /repo/packages/api-spec/todo.openapi.yaml', '[text] Creating Todo schema with id, title, completed, createdAt...', '[text] Defining REST endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}', '[tool] readFile /repo/packages/api-spec/todo.openapi.yaml', '[done] Agent finished'], mr: { number: 144, status: 'merged', branch: 'fabster/create-todomvc/write-openapi-spec' } },
-      { id: 'generate-backend', name: 'Generate Backend', definition: 'nx:generate-app', type: 'command', status: 'complete', startOffset: 18, duration: 9, inputs: [{ name: 'generator', value: '@nx/node:app' }, { name: 'name', value: 'api' }], logs: ['> npx nx g @nx/node:app api --directory=apps/api', '[complete] App generated'], mr: { number: 145, status: 'merged', branch: 'fabster/create-todomvc/generate-backend' } },
-      { id: 'generate-client-lib', name: 'Gen Client Lib', definition: 'nx:generate-library', type: 'command', status: 'running', startOffset: 101, duration: 7, inputs: [{ name: 'generator', value: '@nx/js:library' }, { name: 'name', value: 'api-client' }], logs: ['> npx nx g @nx/js:library api-client --directory=packages/api-client'], mr: { number: 146, status: 'open', branch: 'fabster/create-todomvc/generate-client-lib' } },
-      { id: 'generate-api-client', name: 'Gen API Client', definition: 'openapi:generate-client', type: 'command', status: 'pending', startOffset: 0, duration: 0, inputs: [{ name: 'specPath', value: 'packages/api-spec/todo.openapi.yaml' }] },
-      { id: 'implement-backend', name: 'Implement Backend', definition: 'code:implement-backend', type: 'task', status: 'pending', agent: 'Smith', reasoning: 'high', startOffset: 0, duration: 0, inputs: [{ name: 'project', value: 'api' }, { name: 'specProject', value: 'api-spec' }], rules: ['successfulBuild', 'linted'] },
-      { id: 'implement-frontend', name: 'Implement Frontend', definition: 'code:implement-frontend', type: 'task', status: 'pending', agent: 'Smith', reasoning: 'high', startOffset: 0, duration: 0, inputs: [{ name: 'project', value: 'web' }, { name: 'clientProject', value: 'api-client' }], rules: ['successfulBuild', 'linted', 'humanApproved'] },
+      { id: 'add-react', name: 'Add React Plugin', definition: 'nx:add-plugin', type: 'command', status: 'complete', startOffset: 12, duration: 8, dependsOn: ['init-workspace'], inputs: [{ name: 'plugin', value: '@nx/react' }], logs: ['> npx nx add @nx/react', '[complete] Plugin added'], mr: { number: 141, status: 'merged', branch: 'fabster/create-todomvc/add-react' } },
+      { id: 'add-node', name: 'Add Node Plugin', definition: 'nx:add-plugin', type: 'command', status: 'complete', startOffset: 12, duration: 6, dependsOn: ['init-workspace'], inputs: [{ name: 'plugin', value: '@nx/node' }], logs: ['> npx nx add @nx/node', '[complete] Plugin added'], mr: { number: 142, status: 'merged', branch: 'fabster/create-todomvc/add-node' } },
+      { id: 'generate-frontend', name: 'Generate Frontend', definition: 'nx:generate-app', type: 'command', status: 'complete', startOffset: 20, duration: 10, dependsOn: ['add-react'], inputs: [{ name: 'generator', value: '@nx/react:app' }, { name: 'name', value: 'web' }], logs: ['> npx nx g @nx/react:app web --directory=apps/web', '[complete] App generated'], mr: { number: 143, status: 'merged', branch: 'fabster/create-todomvc/generate-frontend' } },
+      { id: 'write-openapi-spec', name: 'Write API Spec', definition: 'openapi:generate-spec', type: 'task', status: 'complete', agent: 'Smith', reasoning: 'medium', startOffset: 18, duration: 83, dependsOn: ['add-node'], inputs: [{ name: 'project', value: 'api-spec' }, { name: 'specPath', value: 'packages/api-spec/todo.openapi.yaml' }], rules: ['linted', 'conformant'], logs: ['[tool] writeFile /repo/packages/api-spec/project.json', '[tool] writeFile /repo/packages/api-spec/todo.openapi.yaml', '[text] Creating Todo schema with id, title, completed, createdAt...', '[text] Defining REST endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}', '[tool] readFile /repo/packages/api-spec/todo.openapi.yaml', '[done] Agent finished'], mr: { number: 144, status: 'merged', branch: 'fabster/create-todomvc/write-openapi-spec' } },
+      { id: 'generate-backend', name: 'Generate Backend', definition: 'nx:generate-app', type: 'command', status: 'complete', startOffset: 18, duration: 9, dependsOn: ['add-node'], inputs: [{ name: 'generator', value: '@nx/node:app' }, { name: 'name', value: 'api' }], logs: ['> npx nx g @nx/node:app api --directory=apps/api', '[complete] App generated'], mr: { number: 145, status: 'merged', branch: 'fabster/create-todomvc/generate-backend' } },
+      { id: 'generate-client-lib', name: 'Gen Client Lib', definition: 'nx:generate-library', type: 'command', status: 'running', startOffset: 101, duration: 7, dependsOn: ['write-openapi-spec'], inputs: [{ name: 'generator', value: '@nx/js:library' }, { name: 'name', value: 'api-client' }], logs: ['> npx nx g @nx/js:library api-client --directory=packages/api-client'], mr: { number: 146, status: 'open', branch: 'fabster/create-todomvc/generate-client-lib' } },
+      { id: 'generate-api-client', name: 'Gen API Client', definition: 'openapi:generate-client', type: 'command', status: 'pending', startOffset: 0, duration: 0, dependsOn: ['generate-client-lib'], inputs: [{ name: 'specPath', value: 'packages/api-spec/todo.openapi.yaml' }] },
+      { id: 'implement-backend', name: 'Implement Backend', definition: 'code:implement-backend', type: 'task', status: 'pending', agent: 'Smith', reasoning: 'high', startOffset: 0, duration: 0, dependsOn: ['generate-backend', 'write-openapi-spec'], inputs: [{ name: 'project', value: 'api' }, { name: 'specProject', value: 'api-spec' }], rules: ['successfulBuild', 'linted'] },
+      { id: 'implement-frontend', name: 'Implement Frontend', definition: 'code:implement-frontend', type: 'task', status: 'pending', agent: 'Smith', reasoning: 'high', startOffset: 0, duration: 0, dependsOn: ['generate-frontend', 'generate-api-client'], inputs: [{ name: 'project', value: 'web' }, { name: 'clientProject', value: 'api-client' }], rules: ['successfulBuild', 'linted', 'humanApproved'] },
     ],
   },
   run_1715954400: {
@@ -183,7 +184,61 @@ export function RunDetailPage() {
           </div>
         </div>
 
-        {/* Rows */}
+        {/* Rows with dependency arrows */}
+        <div className="relative">
+        {/* SVG overlay for dependency arrows */}
+        <svg className="absolute inset-0 pointer-events-none z-10" style={{ overflow: 'visible' }}>
+          <defs>
+            <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+              <polygon points="0 0, 6 2, 0 4" className="fill-muted-foreground/50" />
+            </marker>
+          </defs>
+          {run.nodes.map((node, targetIdx) => {
+            if (!node.dependsOn) return null;
+            return node.dependsOn.map((depId) => {
+              const sourceIdx = run.nodes.findIndex((n) => n.id === depId);
+              if (sourceIdx === -1) return null;
+              const source = run.nodes[sourceIdx];
+              if (source.status === 'pending' || node.status === 'pending') return null;
+
+              const rowHeight = 40;
+              const headerHeight = 37; // header row height
+              // Calculate positions relative to the timeline area
+              // The timeline starts after: w-44 + w-24 + w-14 = 82 (328px approx)
+              // We use percentage within the timeline width
+              const sourceEndPct = maxTime > 0 ? ((source.startOffset + source.duration) / maxTime) * 100 : 0;
+              const targetStartPct = maxTime > 0 ? (node.startOffset / maxTime) * 100 : 0;
+
+              // Row Y positions (center of each row)
+              const sourceY = headerHeight + sourceIdx * rowHeight + rowHeight / 2;
+              const targetY = headerHeight + targetIdx * rowHeight + rowHeight / 2;
+
+              // We need to calculate X in the timeline area
+              // Timeline starts at about 330px (w-44=176 + w-24=96 + w-14=56 + padding)
+              // But since SVG covers the whole container, use calc approach
+              // Simpler: use percentages via viewBox won't work well
+              // Let's use a fixed offset approach
+              const timelineLeft = 340; // approximate px offset to timeline start
+              const timelineWidth = 500; // approximate - will be responsive issue
+
+              const sourceX = timelineLeft + (sourceEndPct / 100) * timelineWidth;
+              const targetX = timelineLeft + (targetStartPct / 100) * timelineWidth;
+              const midX = sourceX + 8;
+
+              return (
+                <path
+                  key={`${depId}-${node.id}`}
+                  d={`M ${sourceX} ${sourceY} H ${midX} V ${targetY} H ${targetX}`}
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-muted-foreground/30"
+                  strokeWidth="1.5"
+                  markerEnd="url(#arrowhead)"
+                />
+              );
+            });
+          })}
+        </svg>
         {run.nodes.map((node) => {
           const leftPct = maxTime > 0 ? (node.startOffset / maxTime) * 100 : 0;
           const widthPct = maxTime > 0 ? Math.max((node.duration / maxTime) * 100, 0.5) : 0;
@@ -259,6 +314,7 @@ export function RunDetailPage() {
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* Properties panel (right) */}
