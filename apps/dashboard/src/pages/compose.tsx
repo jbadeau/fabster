@@ -12,6 +12,8 @@ import {
   type Connection,
   type Node,
   type Edge,
+  type DefaultEdgeOptions,
+  MarkerType,
   Panel,
   BackgroundVariant,
 } from '@xyflow/react';
@@ -42,7 +44,7 @@ import {
 function TaskNode({ data }: { data: { label: string; type: 'task' | 'command'; reasoning?: string } }) {
   const isTask = data.type === 'task';
   return (
-    <div className="rounded-lg border bg-card p-3 shadow-sm min-w-[180px] relative">
+    <div className="rounded-lg border bg-card p-3 shadow-sm w-[220px] relative">
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <div className="flex items-center gap-2">
         {isTask ? (
@@ -135,6 +137,14 @@ const initialNodes: Node[] = [
   },
 ];
 
+const defaultEdgeOptions: DefaultEdgeOptions = {
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    width: 16,
+    height: 16,
+  },
+};
+
 const initialEdges: Edge[] = [
   { id: 'e-init-react', source: 'init-workspace', target: 'add-react' },
   { id: 'e-react-node', source: 'add-react', target: 'add-node' },
@@ -191,6 +201,7 @@ export function ComposePage() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
         fitView
         className="bg-background"
       >
