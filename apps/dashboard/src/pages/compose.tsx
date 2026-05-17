@@ -119,13 +119,13 @@ const initialNodes: Node[] = [
     id: 'add-react',
     type: 'taskNode',
     position: { x: 100, y: 120 },
-    data: { label: 'Add React Plugin', type: 'command', run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/react' }], permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Add Nx Plugin', type: 'command', run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/react' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'add-node',
     type: 'taskNode',
     position: { x: 600, y: 120 },
-    data: { label: 'Add Node Plugin', type: 'command', run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/node' }], permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Add Nx Plugin', type: 'command', run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/node' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'generate-frontend',
