@@ -22,6 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Plus, Play, Save, ClipboardList, Terminal, X } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -102,8 +103,13 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
         </div>
       )}
       {isTask && (
-        <div className="mt-1.5 ml-6 text-xs text-muted-foreground">
-          assigned to <span className="text-foreground">{data.agent ?? 'unassigned'}</span>
+        <div className="mt-1.5 ml-6 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Avatar className="h-4 w-4">
+            <AvatarFallback className="text-[8px]">
+              {(data.agent ?? '?').slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-foreground">{data.agent ?? 'unassigned'}</span>
         </div>
       )}
       <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground !w-2 !h-2" />
