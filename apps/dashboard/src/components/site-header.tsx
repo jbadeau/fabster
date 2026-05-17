@@ -15,7 +15,7 @@ const ROUTE_TITLES: Record<string, string> = {
 
 export function SiteHeader() {
   const { pathname } = useLocation()
-  const title = ROUTE_TITLES[pathname] ?? "Dashboard"
+  const title = ROUTE_TITLES[pathname] ?? (pathname.startsWith("/runs/") ? "Run" : "Dashboard")
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">

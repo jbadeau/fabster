@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -154,6 +155,7 @@ const MOCK_RUNS: Run[] = [
 ];
 
 export function RunsPage() {
+  const navigate = useNavigate();
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
       <div>
@@ -179,7 +181,7 @@ export function RunsPage() {
             {MOCK_RUNS.map((run) => {
               const status = STATUS_CONFIG[run.status];
               return (
-                <TableRow key={run.id} className="cursor-pointer hover:bg-muted/50">
+                <TableRow key={run.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/runs/${run.id}`)}>
                   <TableCell className="font-medium">{run.workflow}</TableCell>
                   <TableCell>
                     <Badge variant={status.variant} className="gap-1">
