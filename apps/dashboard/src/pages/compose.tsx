@@ -93,6 +93,7 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
         )}
         <span className="text-sm font-medium">{data.label}</span>
       </div>
+      <div className="ml-6 text-xs text-muted-foreground">{data.definition}</div>
       {isTask && (
         <div className="mt-1.5 ml-6 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Avatar className="h-4 w-4">
