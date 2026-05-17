@@ -43,13 +43,6 @@ const data = {
         <PlayIcon />
       ),
     },
-    {
-      title: "Agents",
-      url: "#",
-      icon: (
-        <BotIcon />
-      ),
-    },
   ],
   catalog: [
     {
@@ -64,6 +57,13 @@ const data = {
       url: "#",
       icon: (
         <ClipboardListIcon />
+      ),
+    },
+    {
+      name: "Agents",
+      url: "#",
+      icon: (
+        <BotIcon />
       ),
     },
   ],
