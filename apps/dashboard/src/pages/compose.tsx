@@ -83,7 +83,7 @@ function resolveTemplate(template: string, inputs?: SchemaField[]): string {
 function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
   const isTask = data.type === 'task';
   return (
-    <div className={`rounded-lg border bg-card p-3 shadow-sm w-[240px] relative ${selected ? 'ring-2 ring-primary' : ''}`}>
+    <div className={`rounded-lg border bg-card p-3 shadow-sm w-[200px] relative ${selected ? 'ring-2 ring-primary' : ''}`}>
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <div className="flex items-center gap-2">
         {isTask ? (
@@ -91,17 +91,8 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
         ) : (
           <Terminal className="h-4 w-4 text-green-500 shrink-0" />
         )}
-        <span className="text-sm font-medium">{data.definition}</span>
+        <span className="text-sm font-medium">{data.label}</span>
       </div>
-      {data.inputs && data.inputs.length > 0 && (
-        <div className="mt-1.5 ml-6 flex flex-col gap-0.5">
-          {data.inputs.map((input) => (
-            <span key={input.name} className="text-xs text-muted-foreground truncate">
-              {input.name}: <span className="text-foreground">{String(input.value ?? '')}</span>
-            </span>
-          ))}
-        </div>
-      )}
       {isTask && (
         <div className="mt-1.5 ml-6 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Avatar className="h-4 w-4">
