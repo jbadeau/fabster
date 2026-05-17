@@ -309,29 +309,24 @@ export function RunDetailPage() {
                 </div>
               </>
             )}
+            <Separator />
+            {/* Logs */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Logs</span>
+              {selectedNode.logs && selectedNode.logs.length > 0 ? (
+                <div className="flex flex-col gap-0.5 font-mono text-xs">
+                  {selectedNode.logs.map((line, i) => (
+                    <span key={i} className={logColor(line)}>{line}</span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">No logs yet</span>
+              )}
+            </div>
           </div>
         </div>
       )}
       </div>
-
-      {/* Logs panel (bottom, full width) */}
-      {selectedNode && (
-        <div className="shrink-0 border-t bg-card max-h-48 overflow-y-auto px-4 lg:px-6 py-3">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Logs</span>
-            <span className="text-xs text-muted-foreground">— {selectedNode.name}</span>
-          </div>
-          {selectedNode.logs && selectedNode.logs.length > 0 ? (
-            <div className="flex flex-col gap-0.5 font-mono text-xs">
-              {selectedNode.logs.map((line, i) => (
-                <span key={i} className={logColor(line)}>{line}</span>
-              ))}
-            </div>
-          ) : (
-            <span className="text-xs text-muted-foreground">No logs yet</span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
