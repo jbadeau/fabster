@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -112,7 +113,7 @@ export function ComposePage() {
     [setEdges],
   );
 
-  const addNode = (name: string, type: 'task' | 'command', reasoning?: string) => {
+  const addNode = (name: string, type: 'task' | 'command', reasoning?: string, dependsOn?: string[]) => {
     const id = String(Date.now());
     const newNode: Node = {
       id,
@@ -121,6 +122,17 @@ export function ComposePage() {
       data: { label: name, type, reasoning: type === 'task' ? reasoning : undefined },
     };
     setNodes((nds) => [...nds, newNode]);
+
+    // Create edges from dependsOn
+    if (dependsOn && dependsOn.length > 0) {
+      const newEdges: Edge[] = dependsOn.map((sourceId) => ({
+        id: `e${sourceId}-${id}`,
+        source: sourceId,
+        target: id,
+      }));
+      setEdges((eds) => [...eds, ...newEdges]);
+    }
+
     setIsAddOpen(false);
   };
 
@@ -162,6 +174,7 @@ export function ComposePage() {
         open={isAddOpen}
         onOpenChange={setIsAddOpen}
         onAdd={addNode}
+        existingNodes={nodes}
       />
     </div>
   );
@@ -171,20 +184,30 @@ function AddNodeDialog({
   open,
   onOpenChange,
   onAdd,
+  existingNodes,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (name: string, type: 'task' | 'command', reasoning?: string) => void;
+  onAdd: (name: string, type: 'task' | 'command', reasoning?: string, dependsOn?: string[]) => void;
+  existingNodes: Node[];
 }) {
   const [name, setName] = useState('');
   const [type, setType] = useState<'task' | 'command'>('task');
   const [reasoning, setReasoning] = useState('medium');
+  const [dependsOn, setDependsOn] = useState<string[]>([]);
+
+  const toggleDep = (id: string) => {
+    setDependsOn((prev) =>
+      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onAdd(name.trim(), type, type === 'task' ? reasoning : undefined);
+    onAdd(name.trim(), type, type === 'task' ? reasoning : undefined, dependsOn.length > 0 ? dependsOn : undefined);
     setName('');
+    setDependsOn([]);
   };
 
   return (
@@ -235,6 +258,22 @@ function AddNodeDialog({
               </div>
             )}
           </div>
+          {existingNodes.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <Label>Depends On</Label>
+              <div className="flex flex-col gap-2 max-h-32 overflow-y-auto rounded-md border p-2">
+                {existingNodes.map((node) => (
+                  <label key={node.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={dependsOn.includes(node.id)}
+                      onCheckedChange={() => toggleDep(node.id)}
+                    />
+                    {node.data.label as string}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
