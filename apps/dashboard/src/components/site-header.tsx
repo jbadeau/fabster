@@ -10,6 +10,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/catalog/workflows": "Workflows",
   "/catalog/tasks": "Tasks",
   "/catalog/skills": "Skills",
+  "/catalog/rules": "Rules",
 }
 
 export function SiteHeader() {

@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, ClipboardListIcon, SparklesIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
+import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, ClipboardListIcon, SparklesIcon, ShieldCheckIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
 
 const data = {
   user: {
@@ -71,6 +71,13 @@ const data = {
       url: "/catalog/skills",
       icon: (
         <SparklesIcon />
+      ),
+    },
+    {
+      name: "Rules",
+      url: "/catalog/rules",
+      icon: (
+        <ShieldCheckIcon />
       ),
     },
   ],
