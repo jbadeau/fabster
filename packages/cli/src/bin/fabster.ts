@@ -10,16 +10,28 @@ if (!command || command === 'help' || command === '--help') {
 fabster - workflow automation for fabricating code
 
 Usage:
-  fabster run <workflow-file>   Run a workflow definition
-  fabster help                  Show this help message
+  fabster daemon                  Start the fabster daemon (API + dashboard)
+  fabster run <workflow-file>     Run a workflow definition
+  fabster help                    Show this help message
 
 Options:
-  --dry-run                     Validate without executing
+  --port <port>                   Daemon port (default: 3456)
+  --dry-run                       Validate without executing
 `);
   process.exit(0);
 }
 
-if (command === 'run') {
+if (command === 'daemon') {
+  const portIndex = args.indexOf('--port');
+  const port = portIndex !== -1 ? Number(args[portIndex + 1]) : 3456;
+
+  import('@fabster/server').then(({ startServer }) => {
+    startServer({ port });
+  }).catch((err: Error) => {
+    console.error(`Error starting daemon: ${err.message}`);
+    process.exit(1);
+  });
+} else if (command === 'run') {
   const workflowFile = args[1];
   if (!workflowFile) {
     console.error('Error: workflow file path required');

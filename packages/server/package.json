@@ -1,10 +1,7 @@
 {
-  "name": "@fabster/cli",
+  "name": "@fabster/server",
   "version": "0.0.1",
   "type": "module",
-  "bin": {
-    "fabster": "./dist/bin/fabster.js"
-  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,12 +19,17 @@
     "!**/*.tsbuildinfo"
   ],
   "nx": {
-    "name": "cli"
+    "name": "server"
   },
   "dependencies": {
     "@fabster/core": "0.0.1",
     "@fabster/runtime": "0.0.1",
-    "@fabster/server": "0.0.1",
+    "@trpc/server": "^11.13.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.0",
     "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
   }
 }
