@@ -430,16 +430,6 @@ function PropertiesPanel({
           </div>
         )}
 
-        {/* Run command (resolved with input values) */}
-        {!isTask && data.run && (
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs text-muted-foreground">Run Command</Label>
-            <code className="rounded-md border bg-muted px-2 py-1.5 text-xs font-mono whitespace-pre-wrap">
-              {resolveTemplate(data.run, data.inputs)}
-            </code>
-          </div>
-        )}
-
         {/* Inputs */}
         {data.inputs && data.inputs.length > 0 && (
           <>
@@ -457,6 +447,19 @@ function PropertiesPanel({
                   }}
                 />
               ))}
+            </div>
+          </>
+        )}
+
+        {/* Run command (resolved with input values, after inputs) */}
+        {!isTask && data.run && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">Run Command</Label>
+              <code className="rounded-md border bg-muted px-2 py-1.5 text-xs font-mono whitespace-pre-wrap">
+                {resolveTemplate(data.run, data.inputs)}
+              </code>
             </div>
           </>
         )}
