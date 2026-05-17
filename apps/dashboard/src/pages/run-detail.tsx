@@ -214,7 +214,7 @@ export function RunDetailPage() {
         {arrowDimensions && (
           <svg className="absolute inset-0 pointer-events-none z-10" width="100%" height="100%">
             <defs>
-              <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+              <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">
                 <polygon points="0 0, 6 2, 0 4" className="fill-muted-foreground/50" />
               </marker>
             </defs>
