@@ -152,7 +152,7 @@ export function RunDetailPage() {
       </div>
 
       {/* Main content: Gantt + optional detail panel */}
-      <div className="flex flex-1 overflow-hidden px-4 lg:px-6 pb-4 gap-4 lg:gap-6">
+      <div className="flex flex-1 overflow-hidden px-4 lg:px-6 pb-4 lg:pb-6 gap-4 lg:gap-6">
       {/* Gantt chart */}
       <div className="flex-1 rounded-lg border overflow-auto">
         {/* Time axis */}
