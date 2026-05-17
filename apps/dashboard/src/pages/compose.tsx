@@ -4,6 +4,8 @@ import {
   Controls,
   Background,
   MiniMap,
+  Handle,
+  Position,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -40,7 +42,8 @@ import {
 function TaskNode({ data }: { data: { label: string; type: 'task' | 'command'; reasoning?: string } }) {
   const isTask = data.type === 'task';
   return (
-    <div className="rounded-lg border bg-card p-3 shadow-sm min-w-[180px]">
+    <div className="rounded-lg border bg-card p-3 shadow-sm min-w-[180px] relative">
+      <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <div className="flex items-center gap-2">
         {isTask ? (
           <ClipboardList className="h-4 w-4 text-blue-500" />
@@ -59,6 +62,7 @@ function TaskNode({ data }: { data: { label: string; type: 'task' | 'command'; r
           </Badge>
         )}
       </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground !w-2 !h-2" />
     </div>
   );
 }
