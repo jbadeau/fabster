@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Clock, CircleCheck, CircleX, CircleDot, CircleMinus, Loader, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -112,32 +112,6 @@ export function RunDetailPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const selectedNode = selectedNodeId ? run.nodes.find((n) => n.id === selectedNodeId) : null;
 
-  // Measure timeline area for arrow positioning
-  const rowsRef = useRef<HTMLDivElement>(null);
-  const [arrowDimensions, setArrowDimensions] = useState<{ timelineLeft: number; timelineWidth: number; rowHeight: number } | null>(null);
-
-  useEffect(() => {
-    if (!rowsRef.current) return;
-    const measure = () => {
-      const container = rowsRef.current;
-      if (!container) return;
-      const firstRow = container.querySelector('[data-timeline]') as HTMLElement | null;
-      if (!firstRow) return;
-      const containerRect = container.getBoundingClientRect();
-      const timelineRect = firstRow.getBoundingClientRect();
-      const style = getComputedStyle(firstRow);
-      const paddingLeft = parseFloat(style.paddingLeft) || 0;
-      const paddingRight = parseFloat(style.paddingRight) || 0;
-      setArrowDimensions({
-        timelineLeft: timelineRect.left - containerRect.left + paddingLeft,
-        timelineWidth: timelineRect.width - paddingLeft - paddingRight,
-        rowHeight: firstRow.parentElement?.offsetHeight ?? 40,
-      });
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [run.nodes]);
 
   const maxTime = Math.max(
     run.totalDuration,
@@ -212,48 +186,6 @@ export function RunDetailPage() {
         </div>
 
         {/* Rows with dependency arrows */}
-        <div className="relative" ref={rowsRef}>
-        {/* SVG overlay for dependency arrows — rendered after mount */}
-        {arrowDimensions && (
-          <svg className="absolute inset-0 pointer-events-none z-10" width="100%" height="100%">
-            <defs>
-              <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
-                <polygon points="0 0, 6 2, 0 4" className="fill-muted-foreground/50" />
-              </marker>
-            </defs>
-            {run.nodes.map((node, targetIdx) => {
-              if (!node.dependsOn) return null;
-              return node.dependsOn.map((depId) => {
-                const sourceIdx = run.nodes.findIndex((n) => n.id === depId);
-                if (sourceIdx === -1) return null;
-                const source = run.nodes[sourceIdx];
-                if (source.status === 'pending' || node.status === 'pending') return null;
-
-                const { timelineLeft, timelineWidth, rowHeight } = arrowDimensions;
-                const sourceEndPct = maxTime > 0 ? ((source.startOffset + source.duration) / maxTime) : 0;
-                const targetStartPct = maxTime > 0 ? (node.startOffset / maxTime) : 0;
-
-                const sourceX = timelineLeft + sourceEndPct * timelineWidth;
-                const targetX = timelineLeft + targetStartPct * timelineWidth;
-                const sourceY = sourceIdx * rowHeight + rowHeight / 2;
-                const targetY = targetIdx * rowHeight + rowHeight / 2;
-                const midX = sourceX + 10;
-
-                return (
-                  <path
-                    key={`${depId}-${node.id}`}
-                    d={`M ${sourceX} ${sourceY} H ${midX} V ${targetY} H ${targetX}`}
-                    fill="none"
-                    stroke="currentColor"
-                    className="text-muted-foreground/40"
-                    strokeWidth="1.5"
-                    markerEnd="url(#arrowhead)"
-                  />
-                );
-              });
-            })}
-          </svg>
-        )}
         {run.nodes.map((node) => {
           const leftPct = maxTime > 0 ? (node.startOffset / maxTime) * 100 : 0;
           const widthPct = maxTime > 0 ? Math.max((node.duration / maxTime) * 100, 0.5) : 0;
@@ -329,7 +261,6 @@ export function RunDetailPage() {
             </div>
           );
         })}
-        </div>
       </div>
 
       {/* Properties panel (right) */}
