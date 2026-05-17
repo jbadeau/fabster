@@ -8,6 +8,7 @@ import { ComposePage } from '@/pages/compose';
 import { RunsPage } from '@/pages/runs';
 import { AgentsPage } from '@/pages/agents';
 import { SkillsPage } from '@/pages/skills';
+import { TasksPage } from '@/pages/tasks';
 
 export function App() {
   return (
@@ -25,6 +26,7 @@ export function App() {
                   <Route path="/runs" element={<RunsPage />} />
                   <Route path="/agents" element={<AgentsPage />} />
                   <Route path="/catalog/skills" element={<SkillsPage />} />
+                  <Route path="/catalog/tasks" element={<TasksPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </div>
