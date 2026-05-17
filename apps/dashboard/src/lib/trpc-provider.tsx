@@ -3,19 +3,26 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink, splitLink, wsLink, createWSClient } from '@trpc/client';
 import { trpc } from './trpc';
 
-const DAEMON_URL = 'http://localhost:3456';
-const DAEMON_WS_URL = 'ws://localhost:3456';
+// Derive daemon URLs from current page origin (works with port forwarding)
+function getDaemonUrl(): string {
+  return `${window.location.origin}/trpc`;
+}
+
+function getDaemonWsUrl(): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}`;
+}
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
-  const [wsClient] = useState(() => createWSClient({ url: DAEMON_WS_URL }));
+  const [wsClient] = useState(() => createWSClient({ url: getDaemonWsUrl() }));
   const [trpcClient] = useState(() =>
     trpc.createClient({
       links: [
         splitLink({
           condition: (op) => op.type === 'subscription',
           true: wsLink({ client: wsClient }),
-          false: httpBatchLink({ url: DAEMON_URL }),
+          false: httpBatchLink({ url: getDaemonUrl() }),
         }),
       ],
     }),
