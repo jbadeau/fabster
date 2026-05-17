@@ -152,7 +152,7 @@ export function RunDetailPage() {
       </div>
 
       {/* Main content: Gantt + optional detail panel */}
-      <div className="flex flex-1 overflow-hidden px-4 lg:px-6 pb-4">
+      <div className="flex flex-1 overflow-hidden px-4 lg:px-6 pb-4 gap-4 lg:gap-6">
       {/* Gantt chart */}
       <div className="flex-1 rounded-lg border overflow-auto">
         {/* Time axis */}
@@ -249,7 +249,7 @@ export function RunDetailPage() {
 
       {/* Properties panel (right) */}
       {selectedNode && (
-        <div className="w-72 shrink-0 ml-4 rounded-lg border bg-card overflow-y-auto">
+        <div className="w-72 shrink-0 rounded-lg border bg-card overflow-y-auto">
           <div className="flex items-center justify-between p-3 border-b">
             <div className="flex items-center gap-2 min-w-0">
               {STATUS_ICON[selectedNode.status]}
