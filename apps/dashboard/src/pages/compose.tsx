@@ -43,6 +43,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+// Input schema types
+interface InputField {
+  name: string;
+  type: 'string' | 'number' | 'boolean';
+  description: string;
+  value?: string | number | boolean;
+}
+
 // Node data shape
 interface NodeData {
   label: string;
@@ -50,6 +58,7 @@ interface NodeData {
   reasoning?: string;
   purpose?: string;
   run?: string;
+  inputs?: InputField[];
   requirements?: string[];
   rules?: string[];
   permissions?: { tools?: string[] };
@@ -95,25 +104,25 @@ const initialNodes: Node[] = [
     id: 'init-workspace',
     type: 'taskNode',
     position: { x: 350, y: 0 },
-    data: { label: 'Init Workspace', type: 'command', run: 'npx create-nx-workspace {name} --preset=apps --ci=skip --nx-cloud=skip', permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Init Workspace', type: 'command', run: 'npx create-nx-workspace {name} --preset=apps --ci=skip --nx-cloud=skip', inputs: [{ name: 'name', type: 'string', description: 'Workspace name', value: 'todomvc' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'add-react',
     type: 'taskNode',
     position: { x: 100, y: 120 },
-    data: { label: 'Add React Plugin', type: 'command', run: 'npx nx add @nx/react', permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Add React Plugin', type: 'command', run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/react' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'add-node',
     type: 'taskNode',
     position: { x: 600, y: 120 },
-    data: { label: 'Add Node Plugin', type: 'command', run: 'npx nx add @nx/node', permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Add Node Plugin', type: 'command', run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/node' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'generate-frontend',
     type: 'taskNode',
     position: { x: 100, y: 240 },
-    data: { label: 'Generate Frontend App', type: 'command', run: 'npx nx g @nx/react:app web --directory=apps/web', permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Generate Frontend App', type: 'command', run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/react:app' }, { name: 'name', type: 'string', description: 'App name', value: 'web' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'apps/web' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'write-openapi-spec',
@@ -122,6 +131,7 @@ const initialNodes: Node[] = [
     data: {
       label: 'Write OpenAPI Spec', type: 'task', reasoning: 'medium',
       purpose: 'Create an API spec project with a valid OpenAPI 3.0 YAML file.\n\nDefine a Todo schema with: id, title, completed, createdAt.\nDefine endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}.',
+      inputs: [{ name: 'project', type: 'string', description: 'Library project name', value: 'api-spec' }, { name: 'specPath', type: 'string', description: 'Output path for the OpenAPI spec', value: 'packages/api-spec/todo.openapi.yaml' }],
       requirements: ['openapi'],
       rules: ['linted', 'conformant'],
       permissions: { tools: ['node', 'npm'] },
@@ -131,19 +141,19 @@ const initialNodes: Node[] = [
     id: 'generate-backend',
     type: 'taskNode',
     position: { x: 750, y: 240 },
-    data: { label: 'Generate Backend App', type: 'command', run: 'npx nx g @nx/node:app api --directory=apps/api', permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Generate Backend App', type: 'command', run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/node:app' }, { name: 'name', type: 'string', description: 'App name', value: 'api' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'apps/api' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'generate-client-lib',
     type: 'taskNode',
     position: { x: 450, y: 360 },
-    data: { label: 'Generate Client Lib', type: 'command', run: 'npx nx g @nx/js:library api-client --directory=packages/api-client', permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Generate Client Lib', type: 'command', run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/js:library' }, { name: 'name', type: 'string', description: 'Library name', value: 'api-client' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'packages/api-client' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'generate-api-client',
     type: 'taskNode',
     position: { x: 450, y: 480 },
-    data: { label: 'Generate API Client', type: 'command', run: 'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir}', permissions: { tools: ['node', 'npm', 'java@21'] }, rules: ['successfulBuild'] },
+    data: { label: 'Generate API Client', type: 'command', run: 'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir}', inputs: [{ name: 'specPath', type: 'string', description: 'Path to the OpenAPI spec', value: 'packages/api-spec/todo.openapi.yaml' }, { name: 'outputDir', type: 'string', description: 'Output directory for generated client', value: 'packages/api-client/src/generated' }], permissions: { tools: ['node', 'npm', 'java@21'] }, rules: ['successfulBuild'] },
   },
   {
     id: 'implement-backend',
@@ -152,6 +162,7 @@ const initialNodes: Node[] = [
     data: {
       label: 'Implement Backend', type: 'task', reasoning: 'high',
       purpose: 'Implement an Express API server for the Todo CRUD API.\n\nCreate main.ts (Express server with CORS, JSON, port 3000), routes/todos.ts (CRUD handlers with in-memory storage), types.ts (Todo interface matching OpenAPI spec).\n\nUse in-memory array, generate UUIDs, return proper HTTP status codes.',
+      inputs: [{ name: 'project', type: 'string', description: 'Nx project name for the backend', value: 'api' }, { name: 'specProject', type: 'string', description: 'Nx project containing the OpenAPI spec', value: 'api-spec' }],
       requirements: ['code-generation', 'testing'],
       rules: ['successfulBuild', 'linted'],
       permissions: { tools: ['node', 'npm'] },
@@ -164,6 +175,7 @@ const initialNodes: Node[] = [
     data: {
       label: 'Implement Frontend', type: 'task', reasoning: 'high',
       purpose: 'Implement a TodoMVC React frontend application.\n\nCreate app.tsx (main component), todo-item.tsx (item with checkbox/delete), todo-input.tsx (add input), use-todos.ts (custom hook fetching from localhost:3000).\n\nFeatures: add, toggle, delete todos, show remaining count.',
+      inputs: [{ name: 'project', type: 'string', description: 'Nx project name for the frontend', value: 'web' }, { name: 'clientProject', type: 'string', description: 'Nx project containing the API client', value: 'api-client' }],
       requirements: ['code-generation', 'react', 'testing'],
       rules: ['successfulBuild', 'linted', 'humanApproved'],
       permissions: { tools: ['node', 'npm'] },
@@ -373,8 +385,8 @@ function PropertiesPanel({
 
         <Separator />
 
-        {/* Purpose / Prompt (tasks) or Run command (commands) */}
-        {isTask ? (
+        {/* Purpose / Prompt (tasks) */}
+        {isTask && (
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Prompt</Label>
             <Textarea
@@ -385,16 +397,71 @@ function PropertiesPanel({
               placeholder="Describe what the agent should do..."
             />
           </div>
-        ) : (
+        )}
+
+        {/* Run command (read-only template) */}
+        {!isTask && data.run && (
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Run Command</Label>
-            <Input
-              value={data.run ?? ''}
-              onChange={(e) => onUpdate({ run: e.target.value })}
-              className="h-8 text-sm font-mono"
-              placeholder="e.g. npx nx build api"
-            />
+            <code className="rounded-md border bg-muted px-2 py-1.5 text-xs font-mono text-muted-foreground whitespace-pre-wrap">
+              {data.run}
+            </code>
           </div>
+        )}
+
+        {/* Typed inputs */}
+        {data.inputs && data.inputs.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-3">
+              <Label className="text-xs text-muted-foreground">Inputs</Label>
+              {data.inputs.map((input, idx) => (
+                <div key={input.name} className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-medium">{input.name}</span>
+                    <Badge variant="outline" className="text-[10px] px-1 py-0">{input.type}</Badge>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">{input.description}</span>
+                  {input.type === 'string' && (
+                    <Input
+                      value={String(input.value ?? '')}
+                      onChange={(e) => {
+                        const updated = [...data.inputs!];
+                        updated[idx] = { ...input, value: e.target.value };
+                        onUpdate({ inputs: updated });
+                      }}
+                      className="h-7 text-xs font-mono"
+                    />
+                  )}
+                  {input.type === 'number' && (
+                    <Input
+                      type="number"
+                      value={String(input.value ?? '')}
+                      onChange={(e) => {
+                        const updated = [...data.inputs!];
+                        updated[idx] = { ...input, value: Number(e.target.value) };
+                        onUpdate({ inputs: updated });
+                      }}
+                      className="h-7 text-xs font-mono"
+                    />
+                  )}
+                  {input.type === 'boolean' && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={Boolean(input.value)}
+                        onCheckedChange={(checked) => {
+                          const updated = [...data.inputs!];
+                          updated[idx] = { ...input, value: Boolean(checked) };
+                          onUpdate({ inputs: updated });
+                        }}
+                      />
+                      <span className="text-xs">{input.value ? 'true' : 'false'}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Requirements (tasks only) */}
