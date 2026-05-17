@@ -116,6 +116,11 @@ export function RunDetailPage() {
     ...run.nodes.map((n) => n.startOffset + n.duration),
   );
 
+  // Current execution time (furthest point reached by any active/complete node)
+  const currentTime = run.status === 'running'
+    ? Math.max(...run.nodes.filter((n) => n.status !== 'pending').map((n) => n.startOffset + n.duration))
+    : null;
+
   // Time markers
   const markerCount = 6;
   const markers = Array.from({ length: markerCount + 1 }, (_, i) =>
@@ -170,6 +175,15 @@ export function RunDetailPage() {
                 {formatSeconds(t)}
               </div>
             ))}
+            {/* Now marker in header */}
+            {currentTime !== null && (
+              <div
+                className="absolute text-[10px] font-medium text-primary tabular-nums"
+                style={{ left: `${(currentTime / maxTime) * 100}%`, transform: 'translateX(-50%)' }}
+              >
+                Now
+              </div>
+            )}
           </div>
           <div className="w-16 shrink-0 px-3 py-2 text-xs font-medium text-muted-foreground text-right">
             Time
@@ -203,6 +217,14 @@ export function RunDetailPage() {
                     style={{ left: `${(t / maxTime) * 100}%` }}
                   />
                 ))}
+
+                {/* Now marker */}
+                {currentTime !== null && (
+                  <div
+                    className="absolute top-0 bottom-0 w-px bg-primary z-10"
+                    style={{ left: `${(currentTime / maxTime) * 100}%` }}
+                  />
+                )}
 
                 {!isPending && (
                   <Tooltip>
