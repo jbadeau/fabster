@@ -43,8 +43,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Input schema types
-interface InputField {
+// Schema field types
+interface SchemaField {
   name: string;
   type: 'string' | 'number' | 'boolean';
   description: string;
@@ -58,11 +58,20 @@ interface NodeData {
   reasoning?: string;
   purpose?: string;
   run?: string;
-  inputs?: InputField[];
+  inputs?: SchemaField[];
+  outputs?: SchemaField[];
   requirements?: string[];
   rules?: string[];
   permissions?: { tools?: string[] };
   [key: string]: unknown;
+}
+
+function resolveTemplate(template: string, inputs?: SchemaField[]): string {
+  if (!inputs) return template;
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => {
+    const field = inputs.find((f) => f.name === key);
+    return field?.value != null ? String(field.value) : match;
+  });
 }
 
 // Custom node component
@@ -132,6 +141,7 @@ const initialNodes: Node[] = [
       label: 'Write OpenAPI Spec', type: 'task', reasoning: 'medium',
       purpose: 'Create an API spec project with a valid OpenAPI 3.0 YAML file.\n\nDefine a Todo schema with: id, title, completed, createdAt.\nDefine endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}.',
       inputs: [{ name: 'project', type: 'string', description: 'Library project name', value: 'api-spec' }, { name: 'specPath', type: 'string', description: 'Output path for the OpenAPI spec', value: 'packages/api-spec/todo.openapi.yaml' }],
+      outputs: [{ name: 'specPath', type: 'string', description: 'Path to the generated OpenAPI spec file' }],
       requirements: ['openapi'],
       rules: ['linted', 'conformant'],
       permissions: { tools: ['node', 'npm'] },
@@ -399,65 +409,50 @@ function PropertiesPanel({
           </div>
         )}
 
-        {/* Run command (read-only template) */}
+        {/* Run command (resolved with input values) */}
         {!isTask && data.run && (
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Run Command</Label>
-            <code className="rounded-md border bg-muted px-2 py-1.5 text-xs font-mono text-muted-foreground whitespace-pre-wrap">
-              {data.run}
+            <code className="rounded-md border bg-muted px-2 py-1.5 text-xs font-mono whitespace-pre-wrap">
+              {resolveTemplate(data.run, data.inputs)}
             </code>
           </div>
         )}
 
-        {/* Typed inputs */}
+        {/* Inputs */}
         {data.inputs && data.inputs.length > 0 && (
           <>
             <Separator />
             <div className="flex flex-col gap-3">
-              <Label className="text-xs text-muted-foreground">Inputs</Label>
-              {data.inputs.map((input, idx) => (
-                <div key={input.name} className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Inputs</Label>
+              {data.inputs.map((field, idx) => (
+                <SchemaFieldInput
+                  key={field.name}
+                  field={field}
+                  onChange={(updated) => {
+                    const newInputs = [...data.inputs!];
+                    newInputs[idx] = updated;
+                    onUpdate({ inputs: newInputs });
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Outputs */}
+        {data.outputs && data.outputs.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-3">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Outputs</Label>
+              {data.outputs.map((field) => (
+                <div key={field.name} className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-medium">{input.name}</span>
-                    <Badge variant="outline" className="text-[10px] px-1 py-0">{input.type}</Badge>
+                    <span className="text-xs font-medium">{field.name}</span>
+                    <Badge variant="outline" className="text-[10px] px-1 py-0">{field.type}</Badge>
                   </div>
-                  <span className="text-[11px] text-muted-foreground">{input.description}</span>
-                  {input.type === 'string' && (
-                    <Input
-                      value={String(input.value ?? '')}
-                      onChange={(e) => {
-                        const updated = [...data.inputs!];
-                        updated[idx] = { ...input, value: e.target.value };
-                        onUpdate({ inputs: updated });
-                      }}
-                      className="h-7 text-xs font-mono"
-                    />
-                  )}
-                  {input.type === 'number' && (
-                    <Input
-                      type="number"
-                      value={String(input.value ?? '')}
-                      onChange={(e) => {
-                        const updated = [...data.inputs!];
-                        updated[idx] = { ...input, value: Number(e.target.value) };
-                        onUpdate({ inputs: updated });
-                      }}
-                      className="h-7 text-xs font-mono"
-                    />
-                  )}
-                  {input.type === 'boolean' && (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={Boolean(input.value)}
-                        onCheckedChange={(checked) => {
-                          const updated = [...data.inputs!];
-                          updated[idx] = { ...input, value: Boolean(checked) };
-                          onUpdate({ inputs: updated });
-                        }}
-                      />
-                      <span className="text-xs">{input.value ? 'true' : 'false'}</span>
-                    </div>
-                  )}
+                  <span className="text-[11px] text-muted-foreground">{field.description}</span>
                 </div>
               ))}
             </div>
@@ -538,6 +533,48 @@ function PropertiesPanel({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SchemaFieldInput({
+  field,
+  onChange,
+}: {
+  field: SchemaField;
+  onChange: (updated: SchemaField) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-medium">{field.name}</span>
+        <Badge variant="outline" className="text-[10px] px-1 py-0">{field.type}</Badge>
+      </div>
+      <span className="text-[11px] text-muted-foreground">{field.description}</span>
+      {field.type === 'string' && (
+        <Input
+          value={String(field.value ?? '')}
+          onChange={(e) => onChange({ ...field, value: e.target.value })}
+          className="h-7 text-xs font-mono"
+        />
+      )}
+      {field.type === 'number' && (
+        <Input
+          type="number"
+          value={String(field.value ?? '')}
+          onChange={(e) => onChange({ ...field, value: Number(e.target.value) })}
+          className="h-7 text-xs font-mono"
+        />
+      )}
+      {field.type === 'boolean' && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={Boolean(field.value)}
+            onCheckedChange={(checked) => onChange({ ...field, value: Boolean(checked) })}
+          />
+          <span className="text-xs">{field.value ? 'true' : 'false'}</span>
+        </div>
+      )}
     </div>
   );
 }
