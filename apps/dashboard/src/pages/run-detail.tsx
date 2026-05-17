@@ -26,6 +26,7 @@ interface RunNode {
   inputs?: { name: string; value: string }[];
   rules?: string[];
   logs?: string[];
+  mr?: { number: number; status: 'open' | 'merged' | 'closed'; branch: string };
 }
 
 interface RunData {
@@ -64,13 +65,13 @@ const MOCK_RUNS: Record<string, RunData> = {
     totalDuration: 272,
     startedAt: '2 min ago',
     nodes: [
-      { id: 'init-workspace', name: 'Init Workspace', definition: 'nx:init-workspace', type: 'command', status: 'complete', startOffset: 0, duration: 12, inputs: [{ name: 'name', value: 'todomvc' }], logs: ['> npx create-nx-workspace todomvc --preset=apps', '[complete] Workspace created'] },
-      { id: 'add-react', name: 'Add React Plugin', definition: 'nx:add-plugin', type: 'command', status: 'complete', startOffset: 12, duration: 8, inputs: [{ name: 'plugin', value: '@nx/react' }], logs: ['> npx nx add @nx/react', '[complete] Plugin added'] },
-      { id: 'add-node', name: 'Add Node Plugin', definition: 'nx:add-plugin', type: 'command', status: 'complete', startOffset: 12, duration: 6, inputs: [{ name: 'plugin', value: '@nx/node' }], logs: ['> npx nx add @nx/node', '[complete] Plugin added'] },
-      { id: 'generate-frontend', name: 'Generate Frontend', definition: 'nx:generate-app', type: 'command', status: 'complete', startOffset: 20, duration: 10, inputs: [{ name: 'generator', value: '@nx/react:app' }, { name: 'name', value: 'web' }], logs: ['> npx nx g @nx/react:app web --directory=apps/web', '[complete] App generated'] },
-      { id: 'write-openapi-spec', name: 'Write API Spec', definition: 'openapi:generate-spec', type: 'task', status: 'complete', agent: 'Smith', reasoning: 'medium', startOffset: 18, duration: 83, inputs: [{ name: 'project', value: 'api-spec' }, { name: 'specPath', value: 'packages/api-spec/todo.openapi.yaml' }], rules: ['linted', 'conformant'], logs: ['[tool] writeFile /repo/packages/api-spec/project.json', '[tool] writeFile /repo/packages/api-spec/todo.openapi.yaml', '[text] Creating Todo schema with id, title, completed, createdAt...', '[text] Defining REST endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}', '[tool] readFile /repo/packages/api-spec/todo.openapi.yaml', '[done] Agent finished'] },
-      { id: 'generate-backend', name: 'Generate Backend', definition: 'nx:generate-app', type: 'command', status: 'complete', startOffset: 18, duration: 9, inputs: [{ name: 'generator', value: '@nx/node:app' }, { name: 'name', value: 'api' }], logs: ['> npx nx g @nx/node:app api --directory=apps/api', '[complete] App generated'] },
-      { id: 'generate-client-lib', name: 'Gen Client Lib', definition: 'nx:generate-library', type: 'command', status: 'running', startOffset: 101, duration: 7, inputs: [{ name: 'generator', value: '@nx/js:library' }, { name: 'name', value: 'api-client' }], logs: ['> npx nx g @nx/js:library api-client --directory=packages/api-client'] },
+      { id: 'init-workspace', name: 'Init Workspace', definition: 'nx:init-workspace', type: 'command', status: 'complete', startOffset: 0, duration: 12, inputs: [{ name: 'name', value: 'todomvc' }], logs: ['> npx create-nx-workspace todomvc --preset=apps', '[complete] Workspace created'], mr: { number: 140, status: 'merged', branch: 'fabster/create-todomvc/init-workspace' } },
+      { id: 'add-react', name: 'Add React Plugin', definition: 'nx:add-plugin', type: 'command', status: 'complete', startOffset: 12, duration: 8, inputs: [{ name: 'plugin', value: '@nx/react' }], logs: ['> npx nx add @nx/react', '[complete] Plugin added'], mr: { number: 141, status: 'merged', branch: 'fabster/create-todomvc/add-react' } },
+      { id: 'add-node', name: 'Add Node Plugin', definition: 'nx:add-plugin', type: 'command', status: 'complete', startOffset: 12, duration: 6, inputs: [{ name: 'plugin', value: '@nx/node' }], logs: ['> npx nx add @nx/node', '[complete] Plugin added'], mr: { number: 142, status: 'merged', branch: 'fabster/create-todomvc/add-node' } },
+      { id: 'generate-frontend', name: 'Generate Frontend', definition: 'nx:generate-app', type: 'command', status: 'complete', startOffset: 20, duration: 10, inputs: [{ name: 'generator', value: '@nx/react:app' }, { name: 'name', value: 'web' }], logs: ['> npx nx g @nx/react:app web --directory=apps/web', '[complete] App generated'], mr: { number: 143, status: 'merged', branch: 'fabster/create-todomvc/generate-frontend' } },
+      { id: 'write-openapi-spec', name: 'Write API Spec', definition: 'openapi:generate-spec', type: 'task', status: 'complete', agent: 'Smith', reasoning: 'medium', startOffset: 18, duration: 83, inputs: [{ name: 'project', value: 'api-spec' }, { name: 'specPath', value: 'packages/api-spec/todo.openapi.yaml' }], rules: ['linted', 'conformant'], logs: ['[tool] writeFile /repo/packages/api-spec/project.json', '[tool] writeFile /repo/packages/api-spec/todo.openapi.yaml', '[text] Creating Todo schema with id, title, completed, createdAt...', '[text] Defining REST endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}', '[tool] readFile /repo/packages/api-spec/todo.openapi.yaml', '[done] Agent finished'], mr: { number: 144, status: 'merged', branch: 'fabster/create-todomvc/write-openapi-spec' } },
+      { id: 'generate-backend', name: 'Generate Backend', definition: 'nx:generate-app', type: 'command', status: 'complete', startOffset: 18, duration: 9, inputs: [{ name: 'generator', value: '@nx/node:app' }, { name: 'name', value: 'api' }], logs: ['> npx nx g @nx/node:app api --directory=apps/api', '[complete] App generated'], mr: { number: 145, status: 'merged', branch: 'fabster/create-todomvc/generate-backend' } },
+      { id: 'generate-client-lib', name: 'Gen Client Lib', definition: 'nx:generate-library', type: 'command', status: 'running', startOffset: 101, duration: 7, inputs: [{ name: 'generator', value: '@nx/js:library' }, { name: 'name', value: 'api-client' }], logs: ['> npx nx g @nx/js:library api-client --directory=packages/api-client'], mr: { number: 146, status: 'open', branch: 'fabster/create-todomvc/generate-client-lib' } },
       { id: 'generate-api-client', name: 'Gen API Client', definition: 'openapi:generate-client', type: 'command', status: 'pending', startOffset: 0, duration: 0, inputs: [{ name: 'specPath', value: 'packages/api-spec/todo.openapi.yaml' }] },
       { id: 'implement-backend', name: 'Implement Backend', definition: 'code:implement-backend', type: 'task', status: 'pending', agent: 'Smith', reasoning: 'high', startOffset: 0, duration: 0, inputs: [{ name: 'project', value: 'api' }, { name: 'specProject', value: 'api-spec' }], rules: ['successfulBuild', 'linted'] },
       { id: 'implement-frontend', name: 'Implement Frontend', definition: 'code:implement-frontend', type: 'task', status: 'pending', agent: 'Smith', reasoning: 'high', startOffset: 0, duration: 0, inputs: [{ name: 'project', value: 'web' }, { name: 'clientProject', value: 'api-client' }], rules: ['successfulBuild', 'linted', 'humanApproved'] },
@@ -166,7 +167,7 @@ export function RunDetailPage() {
           <div className="w-14 shrink-0 px-2 py-2 text-xs font-medium text-muted-foreground text-right">
             Time
           </div>
-          <div className="flex-1 flex relative px-2 py-2">
+          <div className="flex-1 flex relative px-2 py-2 min-w-0">
             {markers.map((t) => (
               <div
                 key={t}
@@ -176,6 +177,9 @@ export function RunDetailPage() {
                 {formatSeconds(t)}
               </div>
             ))}
+          </div>
+          <div className="w-14 shrink-0 px-2 py-2 text-xs font-medium text-muted-foreground text-right">
+            MR
           </div>
         </div>
 
@@ -242,6 +246,16 @@ export function RunDetailPage() {
                 )}
               </div>
 
+              {/* MR */}
+              <div className="w-14 shrink-0 px-2 py-2.5 text-right text-xs tabular-nums">
+                {node.mr ? (
+                  <span className={node.mr.status === 'merged' ? 'text-green-600' : 'text-blue-500'}>
+                    #{node.mr.number}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">-</span>
+                )}
+              </div>
             </div>
           );
         })}
@@ -306,6 +320,21 @@ export function RunDetailPage() {
                       </Badge>
                     ))}
                   </div>
+                </div>
+              </>
+            )}
+            {selectedNode.mr && (
+              <>
+                <Separator />
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Merge Request</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${selectedNode.mr.status === 'merged' ? 'text-green-600' : 'text-blue-500'}`}>
+                      #{selectedNode.mr.number}
+                    </span>
+                    <Badge variant="outline" className="text-xs">{selectedNode.mr.status}</Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-mono truncate">{selectedNode.mr.branch}</span>
                 </div>
               </>
             )}
