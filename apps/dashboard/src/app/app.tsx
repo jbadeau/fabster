@@ -7,6 +7,7 @@ import { DashboardPage } from '@/pages/dashboard';
 import { ComposePage } from '@/pages/compose';
 import { RunsPage } from '@/pages/runs';
 import { AgentsPage } from '@/pages/agents';
+import { SkillsPage } from '@/pages/skills';
 
 export function App() {
   return (
@@ -23,6 +24,7 @@ export function App() {
                   <Route path="/compose" element={<ComposePage />} />
                   <Route path="/runs" element={<RunsPage />} />
                   <Route path="/agents" element={<AgentsPage />} />
+                  <Route path="/catalog/skills" element={<SkillsPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </div>
