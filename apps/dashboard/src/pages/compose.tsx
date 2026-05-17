@@ -67,38 +67,80 @@ const nodeTypes = {
   taskNode: TaskNode,
 };
 
+// TodoMVC workflow from examples/todomvc/workflow.ts
 const initialNodes: Node[] = [
   {
-    id: '1',
+    id: 'init-workspace',
     type: 'taskNode',
-    position: { x: 250, y: 50 },
+    position: { x: 300, y: 0 },
     data: { label: 'Init Workspace', type: 'command' },
   },
   {
-    id: '2',
+    id: 'add-react',
     type: 'taskNode',
-    position: { x: 100, y: 200 },
-    data: { label: 'Generate API Spec', type: 'task', reasoning: 'medium' },
+    position: { x: 300, y: 100 },
+    data: { label: 'Add React Plugin', type: 'command' },
   },
   {
-    id: '3',
+    id: 'add-node',
     type: 'taskNode',
-    position: { x: 400, y: 200 },
-    data: { label: 'Generate Client', type: 'command' },
+    position: { x: 300, y: 200 },
+    data: { label: 'Add Node Plugin', type: 'command' },
   },
   {
-    id: '4',
+    id: 'write-openapi-spec',
     type: 'taskNode',
-    position: { x: 250, y: 350 },
+    position: { x: 300, y: 300 },
+    data: { label: 'Write OpenAPI Spec', type: 'task', reasoning: 'medium' },
+  },
+  {
+    id: 'generate-client-lib',
+    type: 'taskNode',
+    position: { x: 300, y: 400 },
+    data: { label: 'Generate Client Lib', type: 'command' },
+  },
+  {
+    id: 'generate-api-client',
+    type: 'taskNode',
+    position: { x: 300, y: 500 },
+    data: { label: 'Generate API Client', type: 'command' },
+  },
+  {
+    id: 'generate-backend',
+    type: 'taskNode',
+    position: { x: 300, y: 600 },
+    data: { label: 'Generate Backend App', type: 'command' },
+  },
+  {
+    id: 'implement-backend',
+    type: 'taskNode',
+    position: { x: 300, y: 700 },
     data: { label: 'Implement Backend', type: 'task', reasoning: 'high' },
+  },
+  {
+    id: 'generate-frontend',
+    type: 'taskNode',
+    position: { x: 300, y: 800 },
+    data: { label: 'Generate Frontend App', type: 'command' },
+  },
+  {
+    id: 'implement-frontend',
+    type: 'taskNode',
+    position: { x: 300, y: 900 },
+    data: { label: 'Implement Frontend', type: 'task', reasoning: 'high' },
   },
 ];
 
 const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '1', target: '2', animated: true },
-  { id: 'e1-3', source: '1', target: '3', animated: true },
-  { id: 'e2-4', source: '2', target: '4' },
-  { id: 'e3-4', source: '3', target: '4' },
+  { id: 'e-init-react', source: 'init-workspace', target: 'add-react' },
+  { id: 'e-react-node', source: 'add-react', target: 'add-node' },
+  { id: 'e-node-spec', source: 'add-node', target: 'write-openapi-spec' },
+  { id: 'e-spec-clientlib', source: 'write-openapi-spec', target: 'generate-client-lib' },
+  { id: 'e-clientlib-client', source: 'generate-client-lib', target: 'generate-api-client' },
+  { id: 'e-client-backend', source: 'generate-api-client', target: 'generate-backend' },
+  { id: 'e-backend-impl', source: 'generate-backend', target: 'implement-backend' },
+  { id: 'e-impl-frontend', source: 'implement-backend', target: 'generate-frontend' },
+  { id: 'e-frontend-impl', source: 'generate-frontend', target: 'implement-frontend' },
 ];
 
 export function ComposePage() {
