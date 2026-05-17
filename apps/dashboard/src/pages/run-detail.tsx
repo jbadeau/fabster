@@ -112,6 +112,30 @@ export function RunDetailPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const selectedNode = selectedNodeId ? run.nodes.find((n) => n.id === selectedNodeId) : null;
 
+  // Measure timeline area for arrow positioning
+  const rowsRef = useRef<HTMLDivElement>(null);
+  const [arrowDimensions, setArrowDimensions] = useState<{ timelineLeft: number; timelineWidth: number; rowHeight: number } | null>(null);
+
+  useEffect(() => {
+    if (!rowsRef.current) return;
+    const measure = () => {
+      const container = rowsRef.current;
+      if (!container) return;
+      const firstRow = container.querySelector('[data-timeline]') as HTMLElement | null;
+      if (!firstRow) return;
+      const containerRect = container.getBoundingClientRect();
+      const timelineRect = firstRow.getBoundingClientRect();
+      setArrowDimensions({
+        timelineLeft: timelineRect.left - containerRect.left,
+        timelineWidth: timelineRect.width,
+        rowHeight: firstRow.parentElement?.offsetHeight ?? 40,
+      });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [run.nodes]);
+
   const maxTime = Math.max(
     run.totalDuration,
     ...run.nodes.map((n) => n.startOffset + n.duration),
@@ -185,60 +209,48 @@ export function RunDetailPage() {
         </div>
 
         {/* Rows with dependency arrows */}
-        <div className="relative">
-        {/* SVG overlay for dependency arrows */}
-        <svg className="absolute inset-0 pointer-events-none z-10" style={{ overflow: 'visible' }}>
-          <defs>
-            <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
-              <polygon points="0 0, 6 2, 0 4" className="fill-muted-foreground/50" />
-            </marker>
-          </defs>
-          {run.nodes.map((node, targetIdx) => {
-            if (!node.dependsOn) return null;
-            return node.dependsOn.map((depId) => {
-              const sourceIdx = run.nodes.findIndex((n) => n.id === depId);
-              if (sourceIdx === -1) return null;
-              const source = run.nodes[sourceIdx];
-              if (source.status === 'pending' || node.status === 'pending') return null;
+        <div className="relative" ref={rowsRef}>
+        {/* SVG overlay for dependency arrows — rendered after mount */}
+        {arrowDimensions && (
+          <svg className="absolute inset-0 pointer-events-none z-10" width="100%" height="100%">
+            <defs>
+              <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+                <polygon points="0 0, 6 2, 0 4" className="fill-muted-foreground/50" />
+              </marker>
+            </defs>
+            {run.nodes.map((node, targetIdx) => {
+              if (!node.dependsOn) return null;
+              return node.dependsOn.map((depId) => {
+                const sourceIdx = run.nodes.findIndex((n) => n.id === depId);
+                if (sourceIdx === -1) return null;
+                const source = run.nodes[sourceIdx];
+                if (source.status === 'pending' || node.status === 'pending') return null;
 
-              const rowHeight = 40;
-              const headerHeight = 37; // header row height
-              // Calculate positions relative to the timeline area
-              // The timeline starts after: w-44 + w-24 + w-14 = 82 (328px approx)
-              // We use percentage within the timeline width
-              const sourceEndPct = maxTime > 0 ? ((source.startOffset + source.duration) / maxTime) * 100 : 0;
-              const targetStartPct = maxTime > 0 ? (node.startOffset / maxTime) * 100 : 0;
+                const { timelineLeft, timelineWidth, rowHeight } = arrowDimensions;
+                const sourceEndPct = maxTime > 0 ? ((source.startOffset + source.duration) / maxTime) : 0;
+                const targetStartPct = maxTime > 0 ? (node.startOffset / maxTime) : 0;
 
-              // Row Y positions (center of each row)
-              const sourceY = headerHeight + sourceIdx * rowHeight + rowHeight / 2;
-              const targetY = headerHeight + targetIdx * rowHeight + rowHeight / 2;
+                const sourceX = timelineLeft + sourceEndPct * timelineWidth;
+                const targetX = timelineLeft + targetStartPct * timelineWidth;
+                const sourceY = sourceIdx * rowHeight + rowHeight / 2;
+                const targetY = targetIdx * rowHeight + rowHeight / 2;
+                const midX = sourceX + 10;
 
-              // We need to calculate X in the timeline area
-              // Timeline starts at about 330px (w-44=176 + w-24=96 + w-14=56 + padding)
-              // But since SVG covers the whole container, use calc approach
-              // Simpler: use percentages via viewBox won't work well
-              // Let's use a fixed offset approach
-              const timelineLeft = 340; // approximate px offset to timeline start
-              const timelineWidth = 500; // approximate - will be responsive issue
-
-              const sourceX = timelineLeft + (sourceEndPct / 100) * timelineWidth;
-              const targetX = timelineLeft + (targetStartPct / 100) * timelineWidth;
-              const midX = sourceX + 8;
-
-              return (
-                <path
-                  key={`${depId}-${node.id}`}
-                  d={`M ${sourceX} ${sourceY} H ${midX} V ${targetY} H ${targetX}`}
-                  fill="none"
-                  stroke="currentColor"
-                  className="text-muted-foreground/30"
-                  strokeWidth="1.5"
-                  markerEnd="url(#arrowhead)"
-                />
-              );
-            });
-          })}
-        </svg>
+                return (
+                  <path
+                    key={`${depId}-${node.id}`}
+                    d={`M ${sourceX} ${sourceY} H ${midX} V ${targetY} H ${targetX}`}
+                    fill="none"
+                    stroke="currentColor"
+                    className="text-muted-foreground/40"
+                    strokeWidth="1.5"
+                    markerEnd="url(#arrowhead)"
+                  />
+                );
+              });
+            })}
+          </svg>
+        )}
         {run.nodes.map((node) => {
           const leftPct = maxTime > 0 ? (node.startOffset / maxTime) * 100 : 0;
           const widthPct = maxTime > 0 ? Math.max((node.duration / maxTime) * 100, 0.5) : 0;
@@ -266,7 +278,7 @@ export function RunDetailPage() {
               </div>
 
               {/* Bar */}
-              <div className="flex-1 px-2 py-2.5 relative h-10">
+              <div data-timeline className="flex-1 px-2 py-2.5 relative h-10">
                 {/* Grid lines */}
                 {markers.map((t) => (
                   <div
