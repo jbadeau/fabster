@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
+import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
 
 const data = {
   user: {
@@ -29,10 +29,17 @@ const data = {
       ),
     },
     {
-      title: "Composer",
+      title: "Compose",
       url: "#",
       icon: (
         <PenLineIcon />
+      ),
+    },
+    {
+      title: "Workflows",
+      url: "#",
+      icon: (
+        <ListIcon />
       ),
     },
     {
