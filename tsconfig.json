@@ -20,6 +20,9 @@
     },
     {
       "path": "./apps/dashboard"
+    },
+    {
+      "path": "./packages/server"
     }
   ]
 }
