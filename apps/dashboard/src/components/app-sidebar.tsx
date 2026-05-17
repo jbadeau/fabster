@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
+import { PenLineIcon, PlayIcon, BotIcon, BookOpenIcon, LayoutDashboardIcon, ListIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
 
 const data = {
   user: {
@@ -47,6 +47,13 @@ const data = {
       url: "#",
       icon: (
         <PlayIcon />
+      ),
+    },
+    {
+      title: "Catalog",
+      url: "#",
+      icon: (
+        <BookOpenIcon />
       ),
     },
     {
