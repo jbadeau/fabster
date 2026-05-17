@@ -3,11 +3,9 @@ import path from 'node:path';
 import type { WorkflowDefinition, AgentDefinition } from '@fabster/core';
 import { runWorkflow } from '@fabster/runtime';
 import type { ModelMap } from '@fabster/runtime';
-import { runWithTui } from './tui.js';
 
 interface RunFlags {
   dryRun?: boolean;
-  ui?: boolean;
 }
 
 interface WorkflowModule {
@@ -38,18 +36,6 @@ export async function run(workflowFile: string, flags: RunFlags): Promise<void> 
     );
   }
 
-  const useUi = flags.ui ?? true;
-
-  if (useUi) {
-    await runWithTui(workflow, {
-      agents,
-      models,
-      dryRun: flags.dryRun,
-    });
-    return;
-  }
-
-  // Plain text fallback (--no-ui)
   console.log(`Running workflow: ${workflow.name}`);
   console.log(`  Agents: ${agents.length}`);
   console.log(`  Dry run: ${flags.dryRun ?? false}`);

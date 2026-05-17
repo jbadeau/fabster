@@ -16,10 +16,10 @@
       "path": "./packages/cli"
     },
     {
-      "path": "./packages/ui"
+      "path": "./plugins/openapi"
     },
     {
-      "path": "./plugins/openapi"
+      "path": "./apps/dashboard"
     }
   ]
 }

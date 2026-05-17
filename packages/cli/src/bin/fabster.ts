@@ -15,7 +15,6 @@ Usage:
 
 Options:
   --dry-run                     Validate without executing
-  --no-ui                       Disable TUI, output plain text
 `);
   process.exit(0);
 }
@@ -29,9 +28,8 @@ if (command === 'run') {
   }
 
   const dryRun = args.includes('--dry-run');
-  const noUi = args.includes('--no-ui');
 
-  run(workflowFile, { dryRun, ui: !noUi }).catch((err: Error) => {
+  run(workflowFile, { dryRun }).catch((err: Error) => {
     console.error(`Error: ${err.message}`);
     process.exit(1);
   });

@@ -27,9 +27,6 @@
   "dependencies": {
     "@fabster/core": "0.0.1",
     "@fabster/runtime": "0.0.1",
-    "@fabster/ui": "0.0.1",
-    "ink": "^7.0.3",
-    "react": "^19.2.6",
     "tslib": "^2.3.0"
   }
 }
