@@ -197,17 +197,19 @@ export function SkillsPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((skill) => (
-            <Card key={skill.id}>
-              <CardHeader>
+            <Card key={skill.id} className="flex flex-col">
+              <CardHeader className="flex-1">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-muted-foreground" />
                   <CardTitle className="text-base">{skill.name}</CardTitle>
                 </div>
-                <CardDescription>{skill.description}</CardDescription>
+                <CardDescription className="mt-2 line-clamp-3">
+                  {skill.description}
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-wrap gap-1.5">
                     <Badge variant="outline">{skill.category}</Badge>
