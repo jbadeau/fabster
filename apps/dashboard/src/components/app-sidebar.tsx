@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -12,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { PenLineIcon, PlayIcon, BotIcon, BookOpenIcon, LayoutDashboardIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
+import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, ClipboardListIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
 
 const data = {
   user: {
@@ -43,17 +44,26 @@ const data = {
       ),
     },
     {
-      title: "Catalog",
-      url: "#",
-      icon: (
-        <BookOpenIcon />
-      ),
-    },
-    {
       title: "Agents",
       url: "#",
       icon: (
         <BotIcon />
+      ),
+    },
+  ],
+  catalog: [
+    {
+      name: "Workflows",
+      url: "#",
+      icon: (
+        <ListIcon />
+      ),
+    },
+    {
+      name: "Tasks",
+      url: "#",
+      icon: (
+        <ClipboardListIcon />
       ),
     },
   ],
@@ -100,6 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
+        <NavDocuments items={data.catalog} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
