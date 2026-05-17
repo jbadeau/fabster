@@ -249,7 +249,7 @@ export function RunDetailPage() {
 
       {/* Properties panel (right) */}
       {selectedNode && (
-        <div className="w-72 shrink-0 border-l bg-card overflow-y-auto">
+        <div className="w-72 shrink-0 ml-4 rounded-lg border bg-card overflow-y-auto">
           <div className="flex items-center justify-between p-3 border-b">
             <div className="flex items-center gap-2 min-w-0">
               {STATUS_ICON[selectedNode.status]}
