@@ -170,9 +170,7 @@ export function RunsPage() {
               <TableHead>Workflow</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Progress</TableHead>
-              <TableHead>Agent</TableHead>
               <TableHead className="text-right">Duration</TableHead>
-              <TableHead>Branch</TableHead>
               <TableHead className="text-right">MRs</TableHead>
               <TableHead className="text-right">Started</TableHead>
             </TableRow>
@@ -202,26 +200,10 @@ export function RunsPage() {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <Avatar className="h-5 w-5">
-                        <AvatarFallback className="text-[9px]">
-                          {run.agent.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{run.agent}</span>
-                    </div>
-                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1 text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       <span className="tabular-nums">{run.duration}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <GitBranch className="h-3 w-3" />
-                      <span className="truncate max-w-[180px]">{run.branch}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{run.mrs}</TableCell>
