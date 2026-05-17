@@ -13,12 +13,13 @@ import {
   type Node,
   type Edge,
   type DefaultEdgeOptions,
+  type NodeMouseHandler,
   MarkerType,
   Panel,
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Plus, Play, Save, ClipboardList, Terminal } from 'lucide-react';
+import { Plus, Play, Save, ClipboardList, Terminal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -32,6 +33,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -40,11 +43,24 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Custom node component for tasks
-function TaskNode({ data }: { data: { label: string; type: 'task' | 'command'; reasoning?: string } }) {
+// Node data shape
+interface NodeData {
+  label: string;
+  type: 'task' | 'command';
+  reasoning?: string;
+  purpose?: string;
+  run?: string;
+  requirements?: string[];
+  rules?: string[];
+  permissions?: { tools?: string[] };
+  [key: string]: unknown;
+}
+
+// Custom node component
+function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
   const isTask = data.type === 'task';
   return (
-    <div className="rounded-lg border bg-card p-3 shadow-sm w-[220px] relative">
+    <div className={`rounded-lg border bg-card p-3 shadow-sm w-[220px] relative ${selected ? 'ring-2 ring-primary' : ''}`}>
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <div className="flex items-center gap-2">
         {isTask ? (
@@ -73,73 +89,85 @@ const nodeTypes = {
   taskNode: TaskNode,
 };
 
-// TodoMVC workflow — parallelized DAG
+// TodoMVC workflow — parallelized DAG with full data
 const initialNodes: Node[] = [
   {
     id: 'init-workspace',
     type: 'taskNode',
     position: { x: 350, y: 0 },
-    data: { label: 'Init Workspace', type: 'command' },
+    data: { label: 'Init Workspace', type: 'command', run: 'npx create-nx-workspace {name} --preset=apps --ci=skip --nx-cloud=skip', permissions: { tools: ['node', 'npm'] } },
   },
-  // Parallel: left (frontend) and right (API + backend)
   {
     id: 'add-react',
     type: 'taskNode',
     position: { x: 100, y: 120 },
-    data: { label: 'Add React Plugin', type: 'command' },
+    data: { label: 'Add React Plugin', type: 'command', run: 'npx nx add @nx/react', permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'add-node',
     type: 'taskNode',
     position: { x: 600, y: 120 },
-    data: { label: 'Add Node Plugin', type: 'command' },
+    data: { label: 'Add Node Plugin', type: 'command', run: 'npx nx add @nx/node', permissions: { tools: ['node', 'npm'] } },
   },
-  // Left branch: frontend scaffolding
   {
     id: 'generate-frontend',
     type: 'taskNode',
     position: { x: 100, y: 240 },
-    data: { label: 'Generate Frontend App', type: 'command' },
+    data: { label: 'Generate Frontend App', type: 'command', run: 'npx nx g @nx/react:app web --directory=apps/web', permissions: { tools: ['node', 'npm'] } },
   },
-  // Right branch splits: API spec + backend scaffolding
   {
     id: 'write-openapi-spec',
     type: 'taskNode',
     position: { x: 450, y: 240 },
-    data: { label: 'Write OpenAPI Spec', type: 'task', reasoning: 'medium' },
+    data: {
+      label: 'Write OpenAPI Spec', type: 'task', reasoning: 'medium',
+      purpose: 'Create an API spec project with a valid OpenAPI 3.0 YAML file.\n\nDefine a Todo schema with: id, title, completed, createdAt.\nDefine endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}.',
+      requirements: ['openapi'],
+      rules: ['linted', 'conformant'],
+      permissions: { tools: ['node', 'npm'] },
+    },
   },
   {
     id: 'generate-backend',
     type: 'taskNode',
     position: { x: 750, y: 240 },
-    data: { label: 'Generate Backend App', type: 'command' },
+    data: { label: 'Generate Backend App', type: 'command', run: 'npx nx g @nx/node:app api --directory=apps/api', permissions: { tools: ['node', 'npm'] } },
   },
-  // API client chain
   {
     id: 'generate-client-lib',
     type: 'taskNode',
     position: { x: 450, y: 360 },
-    data: { label: 'Generate Client Lib', type: 'command' },
+    data: { label: 'Generate Client Lib', type: 'command', run: 'npx nx g @nx/js:library api-client --directory=packages/api-client', permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'generate-api-client',
     type: 'taskNode',
     position: { x: 450, y: 480 },
-    data: { label: 'Generate API Client', type: 'command' },
+    data: { label: 'Generate API Client', type: 'command', run: 'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir}', permissions: { tools: ['node', 'npm', 'java@21'] }, rules: ['successfulBuild'] },
   },
-  // Implement backend (needs spec + backend app)
   {
     id: 'implement-backend',
     type: 'taskNode',
     position: { x: 700, y: 480 },
-    data: { label: 'Implement Backend', type: 'task', reasoning: 'high' },
+    data: {
+      label: 'Implement Backend', type: 'task', reasoning: 'high',
+      purpose: 'Implement an Express API server for the Todo CRUD API.\n\nCreate main.ts (Express server with CORS, JSON, port 3000), routes/todos.ts (CRUD handlers with in-memory storage), types.ts (Todo interface matching OpenAPI spec).\n\nUse in-memory array, generate UUIDs, return proper HTTP status codes.',
+      requirements: ['code-generation', 'testing'],
+      rules: ['successfulBuild', 'linted'],
+      permissions: { tools: ['node', 'npm'] },
+    },
   },
-  // Implement frontend (needs frontend app + api client)
   {
     id: 'implement-frontend',
     type: 'taskNode',
     position: { x: 300, y: 620 },
-    data: { label: 'Implement Frontend', type: 'task', reasoning: 'high' },
+    data: {
+      label: 'Implement Frontend', type: 'task', reasoning: 'high',
+      purpose: 'Implement a TodoMVC React frontend application.\n\nCreate app.tsx (main component), todo-item.tsx (item with checkbox/delete), todo-input.tsx (add input), use-todos.ts (custom hook fetching from localhost:3000).\n\nFeatures: add, toggle, delete todos, show remaining count.',
+      requirements: ['code-generation', 'react', 'testing'],
+      rules: ['successfulBuild', 'linted', 'humanApproved'],
+      permissions: { tools: ['node', 'npm'] },
+    },
   },
 ];
 
@@ -152,21 +180,15 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
 };
 
 const initialEdges: Edge[] = [
-  // init → parallel plugin installs
   { id: 'e-init-react', source: 'init-workspace', target: 'add-react' },
   { id: 'e-init-node', source: 'init-workspace', target: 'add-node' },
-  // Left: react → frontend
   { id: 'e-react-frontend', source: 'add-react', target: 'generate-frontend' },
-  // Right: node → spec + backend (parallel)
   { id: 'e-node-spec', source: 'add-node', target: 'write-openapi-spec' },
   { id: 'e-node-backend', source: 'add-node', target: 'generate-backend' },
-  // Spec → client chain
   { id: 'e-spec-clientlib', source: 'write-openapi-spec', target: 'generate-client-lib' },
   { id: 'e-clientlib-client', source: 'generate-client-lib', target: 'generate-api-client' },
-  // Implement backend needs spec + backend app
   { id: 'e-spec-implbackend', source: 'write-openapi-spec', target: 'implement-backend' },
   { id: 'e-backend-implbackend', source: 'generate-backend', target: 'implement-backend' },
-  // Implement frontend needs frontend app + api client
   { id: 'e-frontend-implfrontend', source: 'generate-frontend', target: 'implement-frontend' },
   { id: 'e-client-implfrontend', source: 'generate-api-client', target: 'implement-frontend' },
 ];
@@ -175,6 +197,9 @@ export function ComposePage() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -182,6 +207,20 @@ export function ComposePage() {
     },
     [setEdges],
   );
+
+  const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
+    setSelectedNodeId(node.id);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNodeId(null);
+  }, []);
+
+  const updateNodeData = (nodeId: string, data: Partial<NodeData>) => {
+    setNodes((nds) =>
+      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n)),
+    );
+  };
 
   const addNode = (name: string, type: 'task' | 'command', reasoning?: string, dependsOn?: string[]) => {
     const id = String(Date.now());
@@ -193,7 +232,6 @@ export function ComposePage() {
     };
     setNodes((nds) => [...nds, newNode]);
 
-    // Create edges from dependsOn
     if (dependsOn && dependsOn.length > 0) {
       const newEdges: Edge[] = dependsOn.map((sourceId) => ({
         id: `e${sourceId}-${id}`,
@@ -208,38 +246,50 @@ export function ComposePage() {
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        defaultEdgeOptions={defaultEdgeOptions}
-        fitView
-        className="bg-background"
-      >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <Controls />
-        <MiniMap
-          className="!bg-card !border-border"
-          nodeColor="#6366f1"
+      <div className="flex-1">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
+          nodeTypes={nodeTypes}
+          defaultEdgeOptions={defaultEdgeOptions}
+          fitView
+          className="bg-background"
+        >
+          <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+          <Controls />
+          <MiniMap className="!bg-card !border-border" nodeColor="#6366f1" />
+          <Panel position="top-right" className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setIsAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Node
+            </Button>
+            <Button size="sm" variant="outline">
+              <Save className="mr-2 h-4 w-4" />
+              Save
+            </Button>
+            <Button size="sm">
+              <Play className="mr-2 h-4 w-4" />
+              Run
+            </Button>
+          </Panel>
+        </ReactFlow>
+      </div>
+
+      {/* Properties sidebar */}
+      {selectedNode && (
+        <PropertiesPanel
+          node={selectedNode}
+          edges={edges}
+          allNodes={nodes}
+          onUpdate={(data) => updateNodeData(selectedNode.id, data)}
+          onClose={() => setSelectedNodeId(null)}
         />
-        <Panel position="top-right" className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setIsAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Node
-          </Button>
-          <Button size="sm" variant="outline">
-            <Save className="mr-2 h-4 w-4" />
-            Save
-          </Button>
-          <Button size="sm">
-            <Play className="mr-2 h-4 w-4" />
-            Run
-          </Button>
-        </Panel>
-      </ReactFlow>
+      )}
 
       <AddNodeDialog
         open={isAddOpen}
@@ -247,6 +297,180 @@ export function ComposePage() {
         onAdd={addNode}
         existingNodes={nodes}
       />
+    </div>
+  );
+}
+
+function PropertiesPanel({
+  node,
+  edges,
+  allNodes,
+  onUpdate,
+  onClose,
+}: {
+  node: Node;
+  edges: Edge[];
+  allNodes: Node[];
+  onUpdate: (data: Partial<NodeData>) => void;
+  onClose: () => void;
+}) {
+  const data = node.data as NodeData;
+  const isTask = data.type === 'task';
+  const incomingEdges = edges.filter((e) => e.target === node.id);
+  const outgoingEdges = edges.filter((e) => e.source === node.id);
+  const dependsOn = incomingEdges.map((e) => allNodes.find((n) => n.id === e.source)).filter(Boolean);
+  const dependents = outgoingEdges.map((e) => allNodes.find((n) => n.id === e.target)).filter(Boolean);
+
+  return (
+    <div className="w-80 shrink-0 border-l bg-card overflow-y-auto">
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-2">
+          {isTask ? (
+            <ClipboardList className="h-4 w-4 text-blue-500" />
+          ) : (
+            <Terminal className="h-4 w-4 text-green-500" />
+          )}
+          <h3 className="font-semibold text-sm">{data.label}</h3>
+        </div>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="p-4 flex flex-col gap-4">
+        {/* Name */}
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-muted-foreground">Name</Label>
+          <Input
+            value={data.label}
+            onChange={(e) => onUpdate({ label: e.target.value })}
+            className="h-8 text-sm"
+          />
+        </div>
+
+        {/* Type + Reasoning */}
+        <div className="flex gap-2">
+          <div className="flex flex-col gap-1.5 flex-1">
+            <Label className="text-xs text-muted-foreground">Type</Label>
+            <Badge variant="secondary">{data.type}</Badge>
+          </div>
+          {isTask && (
+            <div className="flex flex-col gap-1.5 flex-1">
+              <Label className="text-xs text-muted-foreground">Reasoning</Label>
+              <Select value={data.reasoning ?? 'medium'} onValueChange={(v) => onUpdate({ reasoning: v })}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Purpose / Prompt (tasks) or Run command (commands) */}
+        {isTask ? (
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Prompt</Label>
+            <Textarea
+              value={data.purpose ?? ''}
+              onChange={(e) => onUpdate({ purpose: e.target.value })}
+              rows={6}
+              className="text-sm"
+              placeholder="Describe what the agent should do..."
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Run Command</Label>
+            <Input
+              value={data.run ?? ''}
+              onChange={(e) => onUpdate({ run: e.target.value })}
+              className="h-8 text-sm font-mono"
+              placeholder="e.g. npx nx build api"
+            />
+          </div>
+        )}
+
+        {/* Requirements (tasks only) */}
+        {isTask && data.requirements && data.requirements.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">Required Skills</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {data.requirements.map((req) => (
+                  <Badge key={req} variant="default" className="text-xs">{req}</Badge>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Rules */}
+        {data.rules && data.rules.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">Rules</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {data.rules.map((rule) => (
+                  <Badge key={rule} variant="outline" className="text-xs">{rule}</Badge>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Tools */}
+        {data.permissions?.tools && data.permissions.tools.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">Tools</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {data.permissions.tools.map((tool) => (
+                  <Badge key={tool} variant="secondary" className="text-xs font-mono">{tool}</Badge>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        <Separator />
+
+        {/* Dependencies */}
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-muted-foreground">Depends On</Label>
+          {dependsOn.length === 0 ? (
+            <span className="text-xs text-muted-foreground">None (root node)</span>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {dependsOn.map((dep) => (
+                <span key={dep!.id} className="text-xs">{(dep!.data as NodeData).label}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-xs text-muted-foreground">Dependents</Label>
+          {dependents.length === 0 ? (
+            <span className="text-xs text-muted-foreground">None (leaf node)</span>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {dependents.map((dep) => (
+                <span key={dep!.id} className="text-xs">{(dep!.data as NodeData).label}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -339,7 +563,7 @@ function AddNodeDialog({
                       checked={dependsOn.includes(node.id)}
                       onCheckedChange={() => toggleDep(node.id)}
                     />
-                    {node.data.label as string}
+                    {(node.data as NodeData).label}
                   </label>
                 ))}
               </div>
