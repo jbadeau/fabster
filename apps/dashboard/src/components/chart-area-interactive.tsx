@@ -153,7 +153,7 @@ export function ChartAreaInteractive() {
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Workflow Runs</CardTitle>
+        <CardTitle>Job Runs</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
             Succeeded vs failed runs over time

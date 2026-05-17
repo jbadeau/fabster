@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ListIcon, ClipboardListIcon, SparklesIcon, ShieldCheckIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
+import { PenLineIcon, PlayIcon, BotIcon, LayoutDashboardIcon, ClipboardListIcon, TerminalIcon, SparklesIcon, ShieldCheckIcon, Settings2Icon, CircleHelpIcon, SearchIcon, HexagonIcon } from "lucide-react"
 
 const data = {
   user: {
@@ -53,17 +53,17 @@ const data = {
   ],
   catalog: [
     {
-      name: "Workflows",
-      url: "/catalog/workflows",
-      icon: (
-        <ListIcon />
-      ),
-    },
-    {
       name: "Tasks",
       url: "/catalog/tasks",
       icon: (
         <ClipboardListIcon />
+      ),
+    },
+    {
+      name: "Commands",
+      url: "/catalog/commands",
+      icon: (
+        <TerminalIcon />
       ),
     },
     {

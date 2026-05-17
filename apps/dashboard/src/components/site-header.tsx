@@ -7,8 +7,8 @@ const ROUTE_TITLES: Record<string, string> = {
   "/compose": "Compose",
   "/runs": "Runs",
   "/agents": "Agents",
-  "/catalog/workflows": "Workflows",
   "/catalog/tasks": "Tasks",
+  "/catalog/commands": "Commands",
   "/catalog/skills": "Skills",
   "/catalog/rules": "Rules",
 }

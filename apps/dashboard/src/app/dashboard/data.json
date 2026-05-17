@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "workflow": "create-todomvc",
+    "job": "create-todomvc",
     "status": "merged",
     "nodes": 10,
     "duration": "4:32",
@@ -10,7 +10,7 @@
   },
   {
     "id": 2,
-    "workflow": "add-auth-flow",
+    "job": "add-auth-flow",
     "status": "merged",
     "nodes": 6,
     "duration": "2:15",
@@ -19,7 +19,7 @@
   },
   {
     "id": 3,
-    "workflow": "create-dashboard",
+    "job": "create-dashboard",
     "status": "open",
     "nodes": 8,
     "duration": "3:47",
@@ -28,7 +28,7 @@
   },
   {
     "id": 4,
-    "workflow": "add-ci-pipeline",
+    "job": "add-ci-pipeline",
     "status": "merged",
     "nodes": 4,
     "duration": "1:03",
@@ -37,7 +37,7 @@
   },
   {
     "id": 5,
-    "workflow": "create-api-gateway",
+    "job": "create-api-gateway",
     "status": "error",
     "nodes": 7,
     "duration": "5:21",
@@ -46,7 +46,7 @@
   },
   {
     "id": 6,
-    "workflow": "refactor-auth-module",
+    "job": "refactor-auth-module",
     "status": "merged",
     "nodes": 5,
     "duration": "1:48",
@@ -55,7 +55,7 @@
   },
   {
     "id": 7,
-    "workflow": "add-monitoring",
+    "job": "add-monitoring",
     "status": "cancelled",
     "nodes": 3,
     "duration": "0:42",
@@ -64,7 +64,7 @@
   },
   {
     "id": 8,
-    "workflow": "create-design-system",
+    "job": "create-design-system",
     "status": "merged",
     "nodes": 12,
     "duration": "8:15",
@@ -73,7 +73,7 @@
   },
   {
     "id": 9,
-    "workflow": "add-e2e-tests",
+    "job": "add-e2e-tests",
     "status": "pass",
     "nodes": 5,
     "duration": "2:33",
@@ -82,7 +82,7 @@
   },
   {
     "id": 10,
-    "workflow": "migrate-to-nx",
+    "job": "migrate-to-nx",
     "status": "merged",
     "nodes": 9,
     "duration": "6:02",

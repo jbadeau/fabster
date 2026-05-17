@@ -10,6 +10,7 @@ import { RunDetailPage } from '@/pages/run-detail';
 import { AgentsPage } from '@/pages/agents';
 import { SkillsPage } from '@/pages/skills';
 import { TasksPage } from '@/pages/tasks';
+import { CommandsPage } from '@/pages/commands';
 import { RulesPage } from '@/pages/rules';
 
 export function App() {
@@ -30,6 +31,7 @@ export function App() {
                   <Route path="/agents" element={<AgentsPage />} />
                   <Route path="/catalog/skills" element={<SkillsPage />} />
                   <Route path="/catalog/tasks" element={<TasksPage />} />
+                  <Route path="/catalog/commands" element={<CommandsPage />} />
                   <Route path="/catalog/rules" element={<RulesPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
