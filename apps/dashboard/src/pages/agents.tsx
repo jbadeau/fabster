@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 
 interface Agent {
@@ -157,7 +157,6 @@ export function AgentsPage() {
           <Card key={agent.id} className="text-center w-[200px]">
             <CardHeader className="items-center pb-2">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={agent.avatar} alt={agent.name} />
                 <AvatarFallback className="text-lg">{agent.initials}</AvatarFallback>
               </Avatar>
               <CardTitle className="mt-2">{agent.name}</CardTitle>
