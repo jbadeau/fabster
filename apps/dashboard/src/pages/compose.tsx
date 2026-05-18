@@ -388,19 +388,10 @@ function PropertiesPanel({
             <Label className="text-xs text-muted-foreground">Type</Label>
             <Badge variant="secondary">{data.type}</Badge>
           </div>
-          {isTask && (
+          {isTask && data.reasoning && (
             <div className="flex flex-col gap-1.5 flex-1">
               <Label className="text-xs text-muted-foreground">Reasoning</Label>
-              <Select value={data.reasoning ?? 'medium'} onValueChange={(v) => onUpdate({ reasoning: v })}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
+              <Badge variant="outline">{data.reasoning}</Badge>
             </div>
           )}
         </div>
