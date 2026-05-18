@@ -278,8 +278,30 @@ function ComposeCanvas({ runId }: { runId?: string }) {
     }));
   }, [runStates]);
 
+  // Style edges based on target node status
+  const edgesWithState = useMemo(() => {
+    if (!runStates) return initialEdges;
+    return initialEdges.map((e) => {
+      const targetStatus = runStates[e.target];
+      const sourceStatus = runStates[e.source];
+      if (targetStatus === 'running') {
+        return { ...e, animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } };
+      }
+      if (targetStatus === 'complete' && sourceStatus === 'complete') {
+        return { ...e, style: { stroke: '#22c55e' } };
+      }
+      if (targetStatus === 'failed' || sourceStatus === 'failed') {
+        return { ...e, style: { stroke: '#ef4444' } };
+      }
+      if (targetStatus === 'pending') {
+        return { ...e, style: { stroke: '#a1a1aa', opacity: 0.3 } };
+      }
+      return e;
+    });
+  }, [runStates]);
+
   const [nodes, setNodes, onNodesChange] = useNodesState(nodesWithState);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(edgesWithState);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const { fitView } = useReactFlow();
