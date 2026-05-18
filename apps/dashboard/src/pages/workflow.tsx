@@ -496,7 +496,7 @@ function ComposeCanvas({ runId }: { runId?: string }) {
               {logsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
             </button>
             {logsOpen && (
-              <div className="flex-1 overflow-y-auto px-4 py-2 font-mono text-xs border-t">
+              <div className="flex-1 overflow-y-scroll px-4 py-2 font-mono text-xs border-t">
                 {(MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
                   <div className="flex flex-col gap-0.5">
                     {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
