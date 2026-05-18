@@ -95,15 +95,16 @@ const STATUS_BORDER: Record<ExecutionStatus, string> = {
 // Custom node component
 function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
   const isTask = data.type === 'task';
+  const isPending = data.status === 'pending' || data.status === 'skipped';
   const statusBorder = data.status ? STATUS_BORDER[data.status] : 'border-border/50';
   return (
-    <div className={`rounded-md border bg-card p-3 shadow-xs w-[200px] relative ${statusBorder} ${selected ? 'ring-1 ring-primary' : ''}`}>
+    <div className={`rounded-md border p-3 shadow-xs w-[200px] relative ${statusBorder} ${isPending ? 'bg-muted opacity-50' : 'bg-card'} ${selected ? 'ring-1 ring-primary' : ''}`}>
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <div className="flex items-center gap-2">
         {isTask ? (
-          <ClipboardList className="h-4 w-4 text-blue-500 shrink-0" />
+          <ClipboardList className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-blue-500'}`} />
         ) : (
-          <Terminal className="h-4 w-4 text-green-500 shrink-0" />
+          <Terminal className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-green-500'}`} />
         )}
         <span className="text-xs font-medium">{data.label}</span>
       </div>
