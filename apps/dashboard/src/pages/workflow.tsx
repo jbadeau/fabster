@@ -22,7 +22,7 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Plus, Play, Save, ClipboardList, Terminal, X } from 'lucide-react';
+import { Plus, Play, Save, ClipboardList, Terminal as TerminalIcon, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -104,7 +104,7 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
         {isTask ? (
           <ClipboardList className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-blue-500'}`} />
         ) : (
-          <Terminal className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-green-500'}`} />
+          <TerminalIcon className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-green-500'}`} />
         )}
         <span className="text-xs font-medium">{data.label}</span>
       </div>
@@ -278,6 +278,20 @@ const MOCK_RUN_STATES: Record<string, Record<string, ExecutionStatus>> = {
   },
 };
 
+// Mock logs for nodes that have executed
+const MOCK_NODE_LOGS: Record<string, string[]> = {
+  'init-workspace': ['> npx create-nx-workspace todomvc --preset=apps', '[complete] Workspace created'],
+  'add-react': ['> npx nx add @nx/react', '[complete] Plugin added'],
+  'add-node': ['> npx nx add @nx/node', '[complete] Plugin added'],
+  'generate-frontend': ['> npx nx g @nx/react:app web --directory=apps/web', '[complete] App generated'],
+  'write-openapi-spec': ['[tool] writeFile /repo/packages/api-spec/project.json', '[tool] writeFile /repo/packages/api-spec/todo.openapi.yaml', '[text] Creating Todo schema with id, title, completed, createdAt...', '[text] Defining REST endpoints: GET, POST, PUT, DELETE /todos', '[done] Agent finished'],
+  'generate-backend': ['> npx nx g @nx/node:app api --directory=apps/api', '[complete] App generated'],
+  'generate-client-lib': ['> npx nx g @nx/js:library api-client --directory=packages/api-client', '[complete] Library generated'],
+  'generate-api-client': ['> npx @openapitools/openapi-generator-cli generate -i packages/api-spec/todo.openapi.yaml -g typescript-fetch -o packages/api-client/src/generated', 'ERROR: Schema validation failed — missing required field "schema" in response definition'],
+  'implement-backend': ['[tool] writeFile /repo/apps/api/src/main.ts', '[tool] writeFile /repo/apps/api/src/routes/todos.ts', '[tool] writeFile /repo/apps/api/src/types.ts', '[text] Implementing Express server with CORS, JSON, port 3000', '[done] Agent finished'],
+  'implement-frontend': ['[tool] writeFile /repo/apps/web/src/app/app.tsx', '[tool] writeFile /repo/apps/web/src/app/todo-item.tsx', '[tool] writeFile /repo/apps/web/src/app/use-todos.ts', '[done] Agent finished'],
+};
+
 export function WorkflowPage() {
   const { runId } = useParams();
   return (
@@ -320,6 +334,7 @@ function ComposeCanvas({ runId }: { runId?: string }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState(edgesWithState);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [logsOpen, setLogsOpen] = useState(false);
   const { fitView } = useReactFlow();
 
   // Resize canvas when sidebar opens/closes
@@ -339,7 +354,8 @@ function ComposeCanvas({ runId }: { runId?: string }) {
 
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedNodeId(node.id);
-  }, []);
+    if (isExecutionMode) setLogsOpen(true);
+  }, [isExecutionMode]);
 
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
@@ -375,6 +391,7 @@ function ComposeCanvas({ runId }: { runId?: string }) {
 
   return (
     <>
+    <div className="flex flex-1 flex-col overflow-hidden">
     <div className="flex flex-1 overflow-hidden">
       <div className="flex-1">
         <ReactFlow
@@ -425,6 +442,37 @@ function ComposeCanvas({ runId }: { runId?: string }) {
 
     </div>
 
+      {/* Bottom log panel (toggleable, execution mode only) */}
+      {isExecutionMode && selectedNode && (
+        <div className="shrink-0 border-t bg-card">
+          <button
+            onClick={() => setLogsOpen((o) => !o)}
+            className="flex w-full items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50"
+          >
+            <div className="flex items-center gap-2">
+              <TerminalIcon className="h-3 w-3" />
+              <span>Logs — {(selectedNode.data as NodeData).label}</span>
+            </div>
+            {logsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+          </button>
+          {logsOpen && (
+            <div className="max-h-48 overflow-y-auto px-4 pb-3 font-mono text-xs">
+              {(MOCK_NODE_LOGS[(selectedNode.data as NodeData).label ? selectedNode.id : ''] ?? MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
+                <div className="flex flex-col gap-0.5">
+                  {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
+                    <span key={i} className={logColor(line)}>{line}</span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-muted-foreground">No logs yet</span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+    </div>
+
       <AddNodeDialog
         open={isAddOpen}
         onOpenChange={setIsAddOpen}
@@ -454,7 +502,7 @@ function PropertiesPanel({
           {isTask ? (
             <ClipboardList className="h-4 w-4 text-blue-500" />
           ) : (
-            <Terminal className="h-4 w-4 text-green-500" />
+            <TerminalIcon className="h-4 w-4 text-green-500" />
           )}
           <h3 className="font-semibold text-sm">{data.label}</h3>
         </div>
@@ -666,6 +714,15 @@ function SchemaFieldInput({
       )}
     </div>
   );
+}
+
+function logColor(line: string): string {
+  if (line.startsWith('[tool]')) return 'text-purple-500';
+  if (line.startsWith('[text]')) return 'text-foreground';
+  if (line.startsWith('[done]') || line.startsWith('[complete]')) return 'text-green-500';
+  if (line.startsWith('ERROR') || line.startsWith('[failed]')) return 'text-destructive';
+  if (line.startsWith('>')) return 'text-cyan-500';
+  return 'text-muted-foreground';
 }
 
 function AddNodeDialog({
