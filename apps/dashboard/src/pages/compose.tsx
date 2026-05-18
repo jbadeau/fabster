@@ -147,7 +147,7 @@ const initialNodes: Node[] = [
     type: 'taskNode',
     position: { x: 450, y: 240 },
     data: {
-      label: 'Write API Spec', definition: 'openapi:generate-spec', type: 'task', reasoning: 'medium', agent: 'Smith',
+      label: 'Write API Spec', definition: 'openapi:generate-spec', type: 'task', reasoning: 'medium', agent: 'Dozer',
       purpose: 'Create an API spec project with a valid OpenAPI 3.0 YAML file.\n\nDefine a Todo schema with: id, title, completed, createdAt.\nDefine endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}.',
       inputs: [{ name: 'project', type: 'string', description: 'Library project name', value: 'api-spec' }, { name: 'specPath', type: 'string', description: 'Output path for the OpenAPI spec', value: 'packages/api-spec/todo.openapi.yaml' }],
       outputs: [{ name: 'specPath', type: 'string', description: 'Path to the generated OpenAPI spec file' }],
@@ -179,7 +179,7 @@ const initialNodes: Node[] = [
     type: 'taskNode',
     position: { x: 700, y: 480 },
     data: {
-      label: 'Implement Backend', definition: 'code:implement-backend', type: 'task', reasoning: 'high', agent: 'Smith',
+      label: 'Implement Backend', definition: 'code:implement-backend', type: 'task', reasoning: 'high', agent: 'Tank',
       purpose: 'Implement an Express API server for the Todo CRUD API.\n\nCreate main.ts (Express server with CORS, JSON, port 3000), routes/todos.ts (CRUD handlers with in-memory storage), types.ts (Todo interface matching OpenAPI spec).\n\nUse in-memory array, generate UUIDs, return proper HTTP status codes.',
       inputs: [{ name: 'project', type: 'string', description: 'Nx project name for the backend', value: 'api' }, { name: 'specProject', type: 'string', description: 'Nx project containing the OpenAPI spec', value: 'api-spec' }],
       requirements: ['code-generation', 'testing'],
@@ -192,7 +192,7 @@ const initialNodes: Node[] = [
     type: 'taskNode',
     position: { x: 300, y: 620 },
     data: {
-      label: 'Implement Frontend', definition: 'code:implement-frontend', type: 'task', reasoning: 'high', agent: 'Smith',
+      label: 'Implement Frontend', definition: 'code:implement-frontend', type: 'task', reasoning: 'high', agent: 'Trinity',
       purpose: 'Implement a TodoMVC React frontend application.\n\nCreate app.tsx (main component), todo-item.tsx (item with checkbox/delete), todo-input.tsx (add input), use-todos.ts (custom hook fetching from localhost:3000).\n\nFeatures: add, toggle, delete todos, show remaining count.',
       inputs: [{ name: 'project', type: 'string', description: 'Nx project name for the frontend', value: 'web' }, { name: 'clientProject', type: 'string', description: 'Nx project containing the API client', value: 'api-client' }],
       requirements: ['code-generation', 'react', 'testing'],
