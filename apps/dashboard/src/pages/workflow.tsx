@@ -393,7 +393,7 @@ function ComposeCanvas({ runId }: { runId?: string }) {
   return (
     <>
     <ResizablePanelGroup orientation="vertical" className="flex-1 overflow-hidden">
-    <ResizablePanel minSize={30}>
+    <ResizablePanel minSize={10}>
     <div className="flex h-full overflow-hidden">
       <div className="flex-1">
         <ReactFlow
