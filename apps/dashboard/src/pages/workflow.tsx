@@ -433,29 +433,31 @@ function ComposeCanvas({ runId }: { runId?: string }) {
         </div>
 
         {/* Bottom log panel (under canvas only, not sidebar) */}
-        {isExecutionMode && logsOpen && selectedNode && (
-          <div className="shrink-0 h-64 border-t bg-card flex flex-col">
+        {isExecutionMode && selectedNode && (
+          <div className={`shrink-0 border-t bg-card flex flex-col ${logsOpen ? 'h-64' : ''}`}>
             <button
-              onClick={() => setLogsOpen(false)}
-              className="flex shrink-0 items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 border-b"
+              onClick={() => setLogsOpen((o) => !o)}
+              className="flex shrink-0 items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50"
             >
               <div className="flex items-center gap-2">
                 <TerminalIcon className="h-3 w-3" />
                 <span>Logs — {(selectedNode.data as NodeData).label}</span>
               </div>
-              <ChevronDown className="h-3 w-3" />
+              {logsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
             </button>
-            <div className="flex-1 overflow-y-auto px-4 py-2 font-mono text-xs">
-              {(MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
-                <div className="flex flex-col gap-0.5">
-                  {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
-                    <span key={i} className={logColor(line)}>{line}</span>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-muted-foreground">No logs yet</span>
-              )}
-            </div>
+            {logsOpen && (
+              <div className="flex-1 overflow-y-auto px-4 py-2 font-mono text-xs border-t">
+                {(MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
+                  <div className="flex flex-col gap-0.5">
+                    {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
+                      <span key={i} className={logColor(line)}>{line}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">No logs yet</span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
