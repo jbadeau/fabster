@@ -407,6 +407,21 @@ function PropertiesPanel({
           )}
         </div>
 
+        {/* Agent */}
+        {isTask && data.agent && (
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarFallback className="text-[10px]">
+                {data.agent.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <Label className="text-xs text-muted-foreground">Assigned to</Label>
+              <p className="text-sm font-medium">{data.agent}</p>
+            </div>
+          </div>
+        )}
+
         <Separator />
 
         {/* Inputs */}
