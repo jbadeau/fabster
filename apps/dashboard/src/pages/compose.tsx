@@ -96,14 +96,9 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
       <div className="ml-6 text-xs text-muted-foreground">{data.definition}</div>
       {isTask && (
         <div className="mt-1.5 ml-6 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Avatar className="h-5 w-5">
-            {data.agent && (
-              <AvatarImage src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${data.agent}`} alt={data.agent} />
-            )}
-            <AvatarFallback className="text-[8px]">
-              {(data.agent ?? '?').slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          {data.agent && (
+            <img src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${data.agent}`} alt={data.agent} className="h-5 w-5" />
+          )}
           <span className="text-foreground">{data.agent ?? 'unassigned'}</span>
         </div>
       )}
