@@ -154,18 +154,18 @@ export function AgentsPage() {
       <div className="flex flex-wrap gap-4">
         {AGENTS.map((agent) => (
           <Card key={agent.id} className="overflow-hidden w-[260px]">
-            <CardContent className="pt-6 flex flex-col items-center gap-3 text-center">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={agent.avatar} alt={agent.name} />
-                <AvatarFallback className="text-lg">{agent.initials}</AvatarFallback>
-              </Avatar>
-
-              <div>
-                <h3 className="text-lg font-semibold">{agent.name}</h3>
-                <p className="text-sm text-muted-foreground">{agent.role}</p>
+            <CardContent className="pt-4 flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 shrink-0">
+                  <AvatarImage src={agent.avatar} alt={agent.name} />
+                  <AvatarFallback>{agent.initials}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold">{agent.name}</h3>
+                  <p className="text-xs text-muted-foreground">{agent.role}</p>
+                  <Badge variant="outline" className="mt-1 text-[10px]">{agent.model}</Badge>
+                </div>
               </div>
-
-              <Badge variant="outline">{agent.model}</Badge>
 
               <p className="text-sm text-muted-foreground line-clamp-2">{agent.purpose}</p>
 
@@ -220,7 +220,7 @@ export function AgentsPage() {
               <Separator />
 
               {/* Skills */}
-              <div className="flex flex-wrap justify-center gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {agent.skills.map((skill) => (
                   <Badge key={skill} variant="secondary">
                     {skill}
