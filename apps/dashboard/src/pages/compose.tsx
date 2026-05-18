@@ -368,7 +368,7 @@ function PropertiesPanel({
   const dependents = outgoingEdges.map((e) => allNodes.find((n) => n.id === e.target)).filter(Boolean);
 
   return (
-    <div className="w-[40%] shrink-0 border-l overflow-y-auto bg-card">
+    <div className="w-[20%] min-w-[280px] shrink-0 border-l overflow-y-auto bg-card">
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           {isTask ? (
