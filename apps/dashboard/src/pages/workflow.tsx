@@ -84,12 +84,12 @@ function resolveTemplate(template: string, inputs?: SchemaField[]): string {
 }
 
 const STATUS_BORDER: Record<ExecutionStatus, string> = {
-  pending: 'border-border/50',
+  pending: 'border-dashed border-muted-foreground/40 animate-pulse',
   running: 'border-blue-500 border-2 animate-pulse',
   complete: 'border-green-500',
   failed: 'border-red-500',
   gated: 'border-yellow-500',
-  skipped: 'border-border/30',
+  skipped: 'border-dashed border-border/30',
 };
 
 // Custom node component
