@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 interface Agent {
   id: string;
   name: string;
+  role: string;
   avatar: string;
   initials: string;
   adapter: string;
@@ -29,63 +30,115 @@ interface Agent {
 const AGENTS: Agent[] = [
   {
     id: '1',
-    name: 'Smith',
-    avatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Smith',
-    initials: 'SM',
+    name: 'Neo',
+    role: 'General Purpose',
+    avatar: 'https://avatars.githubusercontent.com/u/124599?v=4',
+    initials: 'NE',
     adapter: 'claude-code',
-    purpose: 'Full-stack developer — builds frontends, backends, and APIs end-to-end',
-    skills: ['nx', 'openapi', 'react', 'node', 'docker'],
-    costPerTask: '$0.12',
-    rating: 4.8,
-    likes: 342,
-    followers: 1289,
-    tasksCompleted: 847,
-    successRate: 92,
+    purpose: 'The One. Handles any task, excels at complex multi-step work with high reasoning.',
+    skills: ['nx', 'react', 'node', 'openapi', 'docker', 'terraform'],
+    costPerTask: '$0.25',
+    rating: 4.9,
+    likes: 1247,
+    followers: 5832,
+    tasksCompleted: 2341,
+    successRate: 97,
   },
   {
     id: '2',
-    name: 'Jones',
-    avatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Jones',
-    initials: 'JO',
+    name: 'Smith',
+    role: 'Auditor',
+    avatar: 'https://avatars.githubusercontent.com/u/339208?v=4',
+    initials: 'SM',
     adapter: 'claude-code',
-    purpose: 'API specialist — designs and implements REST APIs with OpenAPI specs',
-    skills: ['node', 'openapi', 'docker'],
-    costPerTask: '$0.08',
-    rating: 4.6,
-    likes: 198,
-    followers: 756,
-    tasksCompleted: 423,
-    successRate: 88,
+    purpose: 'Verifies correctness, reviews code quality, and checks compliance against rules.',
+    skills: ['nx'],
+    costPerTask: '$0.06',
+    rating: 4.8,
+    likes: 892,
+    followers: 3214,
+    tasksCompleted: 4120,
+    successRate: 99,
   },
   {
     id: '3',
-    name: 'Neo',
-    avatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Neo',
-    initials: 'NE',
-    adapter: 'codex',
-    purpose: 'Infrastructure engineer — Terraform, Kubernetes, CI/CD pipelines',
-    skills: ['terraform', 'kubernetes', 'docker'],
-    costPerTask: '$0.15',
-    rating: 4.9,
-    likes: 512,
-    followers: 2103,
-    tasksCompleted: 1205,
-    successRate: 95,
+    name: 'Morpheus',
+    role: 'Planner',
+    avatar: 'https://avatars.githubusercontent.com/u/1024025?v=4',
+    initials: 'MO',
+    adapter: 'claude-code',
+    purpose: 'Creates workflows from Jira features, breaks epics into executable task graphs.',
+    skills: ['planning', 'jira'],
+    costPerTask: '$0.10',
+    rating: 4.7,
+    likes: 634,
+    followers: 2891,
+    tasksCompleted: 1567,
+    successRate: 93,
   },
   {
     id: '4',
-    name: 'Ada',
-    avatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Ada',
-    initials: 'AD',
+    name: 'Trinity',
+    role: 'Frontend Specialist',
+    avatar: 'https://avatars.githubusercontent.com/u/8186664?v=4',
+    initials: 'TR',
     adapter: 'claude-code',
-    purpose: 'Frontend specialist — React components, design systems, and accessibility',
+    purpose: 'React components, design systems, accessibility, and state management.',
     skills: ['react', 'nx'],
-    costPerTask: '$0.10',
+    costPerTask: '$0.12',
+    rating: 4.8,
+    likes: 756,
+    followers: 2467,
+    tasksCompleted: 1893,
+    successRate: 94,
+  },
+  {
+    id: '5',
+    name: 'Tank',
+    role: 'Backend Engineer',
+    avatar: 'https://avatars.githubusercontent.com/u/6764957?v=4',
+    initials: 'TK',
+    adapter: 'claude-code',
+    purpose: 'Node.js APIs, Express/Fastify, databases, and server architecture.',
+    skills: ['node', 'docker'],
+    costPerTask: '$0.11',
+    rating: 4.6,
+    likes: 423,
+    followers: 1678,
+    tasksCompleted: 1245,
+    successRate: 89,
+  },
+  {
+    id: '6',
+    name: 'Dozer',
+    role: 'API Architect',
+    avatar: 'https://avatars.githubusercontent.com/u/4060187?v=4',
+    initials: 'DZ',
+    adapter: 'claude-code',
+    purpose: 'Designs and generates OpenAPI specs, API clients, and contracts.',
+    skills: ['openapi', 'node'],
+    costPerTask: '$0.09',
     rating: 4.7,
-    likes: 275,
-    followers: 934,
-    tasksCompleted: 562,
+    likes: 387,
+    followers: 1432,
+    tasksCompleted: 987,
     successRate: 91,
+  },
+  {
+    id: '7',
+    name: 'Oracle',
+    role: 'Documentation',
+    avatar: 'https://avatars.githubusercontent.com/u/11247099?v=4',
+    initials: 'OR',
+    adapter: 'claude-code',
+    purpose: 'Writes docs, READMEs, ADRs, API documentation, and onboarding guides.',
+    skills: ['docs', 'openapi'],
+    costPerTask: '$0.07',
+    rating: 4.5,
+    likes: 298,
+    followers: 1105,
+    tasksCompleted: 876,
+    successRate: 88,
   },
 ];
 
@@ -99,72 +152,55 @@ export function AgentsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="flex flex-wrap gap-4">
         {AGENTS.map((agent) => (
-          <Card key={agent.id} className="text-center">
+          <Card key={agent.id} className="text-center w-[200px]">
             <CardHeader className="items-center pb-2">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={agent.avatar} alt={agent.name} />
                 <AvatarFallback className="text-lg">{agent.initials}</AvatarFallback>
               </Avatar>
               <CardTitle className="mt-2">{agent.name}</CardTitle>
-              <CardDescription className="line-clamp-2">{agent.purpose}</CardDescription>
+              <p className="text-xs font-medium text-muted-foreground">{agent.role}</p>
+              <CardDescription className="line-clamp-2 mt-1">{agent.purpose}</CardDescription>
               <Badge variant="outline" className="mt-1">{agent.adapter}</Badge>
             </CardHeader>
 
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 px-3">
               {/* Stats */}
-              <div className="flex justify-center gap-4 text-sm">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                    <span className="font-semibold">{agent.rating}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Rating</p>
+              <div className="flex justify-between text-xs">
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                  <span className="font-semibold">{agent.rating}</span>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Heart className="h-3 w-3 text-red-500" />
-                    <span className="font-semibold">{agent.likes}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Likes</p>
+                <div className="flex items-center gap-1">
+                  <Heart className="h-3 w-3 text-red-500" />
+                  <span className="font-semibold">{agent.likes}</span>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Users className="h-3 w-3 text-blue-500" />
-                    <span className="font-semibold">{agent.followers}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Followers</p>
+                <div className="flex items-center gap-1">
+                  <Users className="h-3 w-3 text-blue-500" />
+                  <span className="font-semibold">{agent.followers}</span>
                 </div>
               </div>
 
               <Separator />
 
               {/* Cost + Performance */}
-              <div className="flex justify-center gap-6 text-sm">
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Zap className="h-3 w-3 text-green-500" />
-                    <span className="font-semibold">{agent.costPerTask}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">per task</p>
+              <div className="flex justify-between text-xs">
+                <div className="flex items-center gap-1">
+                  <Zap className="h-3 w-3 text-green-500" />
+                  <span className="font-semibold">{agent.costPerTask}</span>
                 </div>
-                <div className="text-center">
-                  <p className="font-semibold">{agent.tasksCompleted}</p>
-                  <p className="text-xs text-muted-foreground">tasks</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-semibold">{agent.successRate}%</p>
-                  <p className="text-xs text-muted-foreground">success</p>
-                </div>
+                <span className="font-semibold">{agent.tasksCompleted.toLocaleString()} tasks</span>
+                <span className="font-semibold">{agent.successRate}%</span>
               </div>
 
               <Separator />
 
               {/* Skills */}
-              <div className="flex flex-wrap justify-center gap-1.5">
+              <div className="flex flex-wrap justify-center gap-1">
                 {agent.skills.map((skill) => (
-                  <Badge key={skill} variant="secondary" className="text-xs">
+                  <Badge key={skill} variant="secondary" className="text-[10px] px-1.5 py-0">
                     {skill}
                   </Badge>
                 ))}
