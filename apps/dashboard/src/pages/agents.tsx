@@ -35,7 +35,7 @@ const AGENTS: Agent[] = [
     initials: 'NE',
     model: 'claude-opus-4',
     purpose: 'The One. Handles any task, excels at complex multi-step work with high reasoning.',
-    skills: ['nx', 'react', 'node', 'openapi', 'docker', 'terraform'],
+    skills: ['all'],
     costPer1kTokens: '$0.25',
     rating: 4.9,
     likes: 1247,
