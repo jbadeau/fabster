@@ -7,13 +7,14 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 
 interface Agent {
   id: string;
   name: string;
   avatar: string;
+  initials: string;
   adapter: string;
   purpose: string;
   skills: string[];
@@ -29,7 +30,8 @@ const AGENTS: Agent[] = [
   {
     id: '1',
     name: 'Smith',
-    avatar: 'SM',
+    avatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Smith',
+    initials: 'SM',
     adapter: 'claude-code',
     purpose: 'Full-stack developer — builds frontends, backends, and APIs end-to-end',
     skills: ['nx', 'openapi', 'react', 'node', 'docker'],
@@ -43,7 +45,8 @@ const AGENTS: Agent[] = [
   {
     id: '2',
     name: 'Jones',
-    avatar: 'JO',
+    avatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Jones',
+    initials: 'JO',
     adapter: 'claude-code',
     purpose: 'API specialist — designs and implements REST APIs with OpenAPI specs',
     skills: ['node', 'openapi', 'docker'],
@@ -57,7 +60,8 @@ const AGENTS: Agent[] = [
   {
     id: '3',
     name: 'Neo',
-    avatar: 'NE',
+    avatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Neo',
+    initials: 'NE',
     adapter: 'codex',
     purpose: 'Infrastructure engineer — Terraform, Kubernetes, CI/CD pipelines',
     skills: ['terraform', 'kubernetes', 'docker'],
@@ -71,7 +75,8 @@ const AGENTS: Agent[] = [
   {
     id: '4',
     name: 'Ada',
-    avatar: 'AD',
+    avatar: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=Ada',
+    initials: 'AD',
     adapter: 'claude-code',
     purpose: 'Frontend specialist — React components, design systems, and accessibility',
     skills: ['react', 'nx'],
@@ -98,8 +103,9 @@ export function AgentsPage() {
         {AGENTS.map((agent) => (
           <Card key={agent.id} className="text-center">
             <CardHeader className="items-center pb-2">
-              <Avatar className="h-16 w-16 text-lg">
-                <AvatarFallback>{agent.avatar}</AvatarFallback>
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={agent.avatar} alt={agent.name} />
+                <AvatarFallback className="text-lg">{agent.initials}</AvatarFallback>
               </Avatar>
               <CardTitle className="mt-2">{agent.name}</CardTitle>
               <CardDescription className="line-clamp-2">{agent.purpose}</CardDescription>
