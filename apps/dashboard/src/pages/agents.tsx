@@ -1,275 +1,172 @@
-import { useState } from 'react';
-import { Plus, Bot, Pencil, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Star, Heart, Users, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 interface Agent {
   id: string;
   name: string;
+  avatar: string;
   adapter: string;
   purpose: string;
   skills: string[];
+  costPerTask: string;
+  rating: number;
+  likes: number;
+  followers: number;
+  tasksCompleted: number;
+  successRate: number;
 }
 
-const AVAILABLE_SKILLS = ['nx', 'openapi', 'react', 'node', 'python', 'docker', 'terraform', 'kubernetes'];
-const ADAPTERS = ['claude-code', 'codex', 'gemini-cli', 'custom'];
-
-const INITIAL_AGENTS: Agent[] = [
+const AGENTS: Agent[] = [
   {
     id: '1',
     name: 'Smith',
+    avatar: 'SM',
     adapter: 'claude-code',
-    purpose: 'Full-stack developer agent',
-    skills: ['nx', 'openapi', 'react'],
+    purpose: 'Full-stack developer — builds frontends, backends, and APIs end-to-end',
+    skills: ['nx', 'openapi', 'react', 'node', 'docker'],
+    costPerTask: '$0.12',
+    rating: 4.8,
+    likes: 342,
+    followers: 1289,
+    tasksCompleted: 847,
+    successRate: 92,
   },
   {
     id: '2',
     name: 'Jones',
+    avatar: 'JO',
     adapter: 'claude-code',
-    purpose: 'API specialist agent',
-    skills: ['node', 'openapi'],
+    purpose: 'API specialist — designs and implements REST APIs with OpenAPI specs',
+    skills: ['node', 'openapi', 'docker'],
+    costPerTask: '$0.08',
+    rating: 4.6,
+    likes: 198,
+    followers: 756,
+    tasksCompleted: 423,
+    successRate: 88,
+  },
+  {
+    id: '3',
+    name: 'Neo',
+    avatar: 'NE',
+    adapter: 'codex',
+    purpose: 'Infrastructure engineer — Terraform, Kubernetes, CI/CD pipelines',
+    skills: ['terraform', 'kubernetes', 'docker'],
+    costPerTask: '$0.15',
+    rating: 4.9,
+    likes: 512,
+    followers: 2103,
+    tasksCompleted: 1205,
+    successRate: 95,
+  },
+  {
+    id: '4',
+    name: 'Ada',
+    avatar: 'AD',
+    adapter: 'claude-code',
+    purpose: 'Frontend specialist — React components, design systems, and accessibility',
+    skills: ['react', 'nx'],
+    costPerTask: '$0.10',
+    rating: 4.7,
+    likes: 275,
+    followers: 934,
+    tasksCompleted: 562,
+    successRate: 91,
   },
 ];
 
 export function AgentsPage() {
-  const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-  const handleCreate = (agent: Omit<Agent, 'id'>) => {
-    setAgents((prev) => [...prev, { ...agent, id: String(Date.now()) }]);
-    setIsCreateOpen(false);
-  };
-
-  const handleUpdate = (agent: Agent) => {
-    setAgents((prev) => prev.map((a) => (a.id === agent.id ? agent : a)));
-    setEditingAgent(null);
-  };
-
-  const handleDelete = (id: string) => {
-    setAgents((prev) => prev.filter((a) => a.id !== id));
-  };
-
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Agents</h2>
-          <p className="text-sm text-muted-foreground">
-            Configure agents and assign skills
-          </p>
-        </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger render={<Button />}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Agent
-          </DialogTrigger>
-          <AgentFormDialog
-            onSubmit={handleCreate}
-            onCancel={() => setIsCreateOpen(false)}
-          />
-        </Dialog>
+      <div>
+        <h2 className="text-lg font-semibold">Agents</h2>
+        <p className="text-sm text-muted-foreground">
+          AI agents available for task execution
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {agents.map((agent) => (
-          <Card key={agent.id}>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Bot className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>{agent.name}</CardTitle>
-              </div>
-              <CardDescription>{agent.purpose}</CardDescription>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {AGENTS.map((agent) => (
+          <Card key={agent.id} className="text-center">
+            <CardHeader className="items-center pb-2">
+              <Avatar className="h-16 w-16 text-lg">
+                <AvatarFallback>{agent.avatar}</AvatarFallback>
+              </Avatar>
+              <CardTitle className="mt-2">{agent.name}</CardTitle>
+              <CardDescription className="line-clamp-2">{agent.purpose}</CardDescription>
+              <Badge variant="outline" className="mt-1">{agent.adapter}</Badge>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                <div className="text-sm text-muted-foreground">
-                  {agent.adapter}
+
+            <CardContent className="space-y-4">
+              {/* Stats */}
+              <div className="flex justify-center gap-4 text-sm">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                    <span className="font-semibold">{agent.rating}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Rating</p>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {agent.skills.map((skill) => (
-                    <Badge key={skill} variant="secondary">
-                      {skill}
-                    </Badge>
-                  ))}
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Heart className="h-3 w-3 text-red-500" />
+                    <span className="font-semibold">{agent.likes}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Likes</p>
                 </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Users className="h-3 w-3 text-blue-500" />
+                    <span className="font-semibold">{agent.followers}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Followers</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Cost + Performance */}
+              <div className="flex justify-center gap-6 text-sm">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <Zap className="h-3 w-3 text-green-500" />
+                    <span className="font-semibold">{agent.costPerTask}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">per task</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold">{agent.tasksCompleted}</p>
+                  <p className="text-xs text-muted-foreground">tasks</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold">{agent.successRate}%</p>
+                  <p className="text-xs text-muted-foreground">success</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Skills */}
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {agent.skills.map((skill) => (
+                  <Badge key={skill} variant="secondary" className="text-xs">
+                    {skill}
+                  </Badge>
+                ))}
               </div>
             </CardContent>
-            <CardFooter className="gap-2">
-              <Dialog
-                open={editingAgent?.id === agent.id}
-                onOpenChange={(open) => {
-                  if (!open) setEditingAgent(null);
-                }}
-              >
-                <DialogTrigger
-                  render={<Button variant="outline" size="sm" />}
-                  onClick={() => setEditingAgent(agent)}
-                >
-                  <Pencil className="mr-2 h-3 w-3" />
-                  Edit
-                </DialogTrigger>
-                {editingAgent?.id === agent.id && (
-                  <AgentFormDialog
-                    agent={editingAgent}
-                    onSubmit={(data) =>
-                      handleUpdate({ ...data, id: agent.id })
-                    }
-                    onCancel={() => setEditingAgent(null)}
-                  />
-                )}
-              </Dialog>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDelete(agent.id)}
-              >
-                <Trash2 className="mr-2 h-3 w-3" />
-                Delete
-              </Button>
-            </CardFooter>
           </Card>
         ))}
       </div>
-
-      {agents.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Bot className="h-12 w-12 text-muted-foreground/50" />
-          <h3 className="mt-4 text-lg font-semibold">No agents</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create your first agent to get started
-          </p>
-        </div>
-      )}
     </div>
-  );
-}
-
-function AgentFormDialog({
-  agent,
-  onSubmit,
-  onCancel,
-}: {
-  agent?: Agent;
-  onSubmit: (data: Omit<Agent, 'id'>) => void;
-  onCancel: () => void;
-}) {
-  const [name, setName] = useState(agent?.name ?? '');
-  const [adapter, setAdapter] = useState(agent?.adapter ?? 'claude-code');
-  const [purpose, setPurpose] = useState(agent?.purpose ?? '');
-  const [skills, setSkills] = useState<string[]>(agent?.skills ?? []);
-
-  const toggleSkill = (skill: string) => {
-    setSkills((prev) =>
-      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill],
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    onSubmit({ name: name.trim(), adapter, purpose: purpose.trim(), skills });
-  };
-
-  return (
-    <DialogContent className="sm:max-w-md">
-      <form onSubmit={handleSubmit}>
-        <DialogHeader>
-          <DialogTitle>{agent ? 'Edit Agent' : 'New Agent'}</DialogTitle>
-          <DialogDescription>
-            {agent
-              ? 'Update agent configuration and skills'
-              : 'Create a new agent and assign skills'}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-4 py-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Smith"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="purpose">Purpose</Label>
-            <Input
-              id="purpose"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              placeholder="e.g. Full-stack developer agent"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="adapter">Adapter</Label>
-            <Select value={adapter} onValueChange={setAdapter}>
-              <SelectTrigger id="adapter">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ADAPTERS.map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {a}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label>Skills</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {AVAILABLE_SKILLS.map((skill) => (
-                <label
-                  key={skill}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <Checkbox
-                    checked={skills.includes(skill)}
-                    onCheckedChange={() => toggleSkill(skill)}
-                  />
-                  {skill}
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!name.trim()}>
-            {agent ? 'Save' : 'Create'}
-          </Button>
-        </DialogFooter>
-      </form>
-    </DialogContent>
   );
 }
