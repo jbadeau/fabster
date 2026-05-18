@@ -159,6 +159,46 @@ const RULES: Rule[] = [
     phase: 'review',
     severity: 'optional',
   },
+  {
+    id: 'module-boundaries',
+    name: 'Module Boundaries',
+    description: 'Enforce Nx module boundary rules. Libraries only import from allowed dependencies.',
+    category: 'Architecture',
+    phase: 'validation',
+    severity: 'required',
+  },
+  {
+    id: 'test-coverage',
+    name: 'Test Coverage',
+    description: 'Code coverage meets the minimum threshold (e.g. 80% lines, branches, functions).',
+    category: 'Quality',
+    phase: 'validation',
+    severity: 'optional',
+  },
+  {
+    id: 'project-structure',
+    name: 'Project Structure',
+    description: 'Projects follow the standard directory layout and naming conventions for apps and libs.',
+    category: 'Architecture',
+    phase: 'validation',
+    severity: 'required',
+  },
+  {
+    id: 'naming-conventions',
+    name: 'Naming Conventions',
+    description: 'Files, components, variables, and exports follow the workspace naming conventions.',
+    category: 'Quality',
+    phase: 'validation',
+    severity: 'optional',
+  },
+  {
+    id: 'observable',
+    name: 'Observable',
+    description: 'Services include structured logging, metrics, and distributed tracing instrumentation.',
+    category: 'Architecture',
+    phase: 'validation',
+    severity: 'optional',
+  },
 ];
 
 const CATEGORIES = [...new Set(RULES.map((r) => r.category))];
