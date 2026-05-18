@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router';
 import {
   ReactFlow,
   Controls,
@@ -54,6 +55,8 @@ interface SchemaField {
   value?: string | number | boolean;
 }
 
+type ExecutionStatus = 'pending' | 'running' | 'complete' | 'failed' | 'gated' | 'skipped';
+
 // Node data shape
 interface NodeData {
   label: string;
@@ -63,6 +66,7 @@ interface NodeData {
   agent?: string;
   purpose?: string;
   run?: string;
+  status?: ExecutionStatus;
   inputs?: SchemaField[];
   outputs?: SchemaField[];
   requirements?: string[];
@@ -79,11 +83,21 @@ function resolveTemplate(template: string, inputs?: SchemaField[]): string {
   });
 }
 
+const STATUS_BORDER: Record<ExecutionStatus, string> = {
+  pending: 'border-border/50',
+  running: 'border-blue-500 border-2 animate-pulse',
+  complete: 'border-green-500',
+  failed: 'border-red-500',
+  gated: 'border-yellow-500',
+  skipped: 'border-border/30',
+};
+
 // Custom node component
 function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
   const isTask = data.type === 'task';
+  const statusBorder = data.status ? STATUS_BORDER[data.status] : 'border-border/50';
   return (
-    <div className={`rounded-md border border-border/50 bg-card p-3 shadow-xs w-[200px] relative ${selected ? 'ring-1 ring-primary' : ''}`}>
+    <div className={`rounded-md border bg-card p-3 shadow-xs w-[200px] relative ${statusBorder} ${selected ? 'ring-1 ring-primary' : ''}`}>
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <div className="flex items-center gap-2">
         {isTask ? (
@@ -219,16 +233,51 @@ const initialEdges: Edge[] = [
   { id: 'e-client-implfrontend', source: 'generate-api-client', target: 'implement-frontend' },
 ];
 
-export function ComposePage() {
+// Mock execution states for runs
+const MOCK_RUN_STATES: Record<string, Record<string, ExecutionStatus>> = {
+  run_1715961600: {
+    'init-workspace': 'complete', 'add-react': 'complete', 'add-node': 'complete',
+    'generate-frontend': 'complete', 'write-openapi-spec': 'complete', 'generate-backend': 'complete',
+    'generate-client-lib': 'running', 'generate-api-client': 'pending',
+    'implement-backend': 'pending', 'implement-frontend': 'pending',
+  },
+  run_1715954400: {
+    'init-workspace': 'complete', 'add-react': 'complete', 'add-node': 'complete',
+    'generate-frontend': 'complete', 'write-openapi-spec': 'complete', 'generate-backend': 'complete',
+    'generate-client-lib': 'complete', 'generate-api-client': 'complete',
+    'implement-backend': 'complete', 'implement-frontend': 'complete',
+  },
+  run_1715947200: {
+    'init-workspace': 'complete', 'add-react': 'complete', 'add-node': 'complete',
+    'generate-frontend': 'complete', 'write-openapi-spec': 'complete', 'generate-backend': 'complete',
+    'generate-client-lib': 'complete', 'generate-api-client': 'failed',
+    'implement-backend': 'skipped', 'implement-frontend': 'skipped',
+  },
+};
+
+export function WorkflowPage() {
+  const { runId } = useParams();
   return (
     <ReactFlowProvider>
-      <ComposeCanvas />
+      <ComposeCanvas runId={runId} />
     </ReactFlowProvider>
   );
 }
 
-function ComposeCanvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+function ComposeCanvas({ runId }: { runId?: string }) {
+  const isExecutionMode = Boolean(runId);
+  const runStates = runId ? MOCK_RUN_STATES[runId] : undefined;
+
+  // Apply execution states to nodes
+  const nodesWithState = useMemo(() => {
+    if (!runStates) return initialNodes;
+    return initialNodes.map((n) => ({
+      ...n,
+      data: { ...n.data, status: runStates[n.id] ?? 'pending' },
+    }));
+  }, [runStates]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(nodesWithState);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -306,18 +355,22 @@ function ComposeCanvas() {
           <Controls />
           <MiniMap className="!bg-card !border-border" nodeColor="#6366f1" />
           <Panel position="top-right" className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setIsAddOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Node
-            </Button>
-            <Button size="sm" variant="outline">
-              <Save className="mr-2 h-4 w-4" />
-              Save
-            </Button>
-            <Button size="sm">
-              <Play className="mr-2 h-4 w-4" />
-              Run
-            </Button>
+            {!isExecutionMode && (
+              <>
+                <Button size="sm" variant="outline" onClick={() => setIsAddOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Node
+                </Button>
+                <Button size="sm" variant="outline">
+                  <Save className="mr-2 h-4 w-4" />
+                  Save
+                </Button>
+                <Button size="sm">
+                  <Play className="mr-2 h-4 w-4" />
+                  Run
+                </Button>
+              </>
+            )}
           </Panel>
         </ReactFlow>
       </div>

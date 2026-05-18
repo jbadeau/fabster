@@ -4,9 +4,8 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { SiteHeader } from '@/components/site-header';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { DashboardPage } from '@/pages/dashboard';
-import { ComposePage } from '@/pages/compose';
-import { RunsPage } from '@/pages/runs';
-import { RunDetailPage } from '@/pages/run-detail';
+import { WorkflowsPage } from '@/pages/workflows';
+import { WorkflowPage } from '@/pages/workflow';
 import { AgentsPage } from '@/pages/agents';
 import { SkillsPage } from '@/pages/skills';
 import { TasksPage } from '@/pages/tasks';
@@ -25,9 +24,9 @@ export function App() {
               <div className="@container/main flex flex-1 flex-col gap-2">
                 <Routes>
                   <Route path="/" element={<DashboardPage />} />
-                  <Route path="/compose" element={<ComposePage />} />
-                  <Route path="/runs" element={<RunsPage />} />
-                  <Route path="/runs/:runId" element={<RunDetailPage />} />
+                  <Route path="/workflows" element={<WorkflowsPage />} />
+                  <Route path="/workflow" element={<WorkflowPage />} />
+                  <Route path="/workflow/:runId" element={<WorkflowPage />} />
                   <Route path="/agents" element={<AgentsPage />} />
                   <Route path="/catalog/skills" element={<SkillsPage />} />
                   <Route path="/catalog/tasks" element={<TasksPage />} />
