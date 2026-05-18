@@ -23,6 +23,11 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Plus, Play, Save, ClipboardList, Terminal, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -288,8 +293,9 @@ function ComposeCanvas() {
   };
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <div className="flex-1">
+    <>
+    <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
+      <ResizablePanel defaultSize={selectedNode ? 60 : 100} minSize={40}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -321,18 +327,25 @@ function ComposeCanvas() {
             </Button>
           </Panel>
         </ReactFlow>
-      </div>
+      </ResizablePanel>
 
       {/* Properties sidebar */}
       {selectedNode && (
-        <PropertiesPanel
-          node={selectedNode}
-          edges={edges}
-          allNodes={nodes}
-          onUpdate={(data) => updateNodeData(selectedNode.id, data)}
-          onClose={() => setSelectedNodeId(null)}
-        />
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={40} minSize={25} maxSize={60}>
+            <PropertiesPanel
+              node={selectedNode}
+              edges={edges}
+              allNodes={nodes}
+              onUpdate={(data) => updateNodeData(selectedNode.id, data)}
+              onClose={() => setSelectedNodeId(null)}
+            />
+          </ResizablePanel>
+        </>
       )}
+
+    </ResizablePanelGroup>
 
       <AddNodeDialog
         open={isAddOpen}
@@ -340,7 +353,7 @@ function ComposeCanvas() {
         onAdd={addNode}
         existingNodes={nodes}
       />
-    </div>
+    </>
   );
 }
 
@@ -365,7 +378,7 @@ function PropertiesPanel({
   const dependents = outgoingEdges.map((e) => allNodes.find((n) => n.id === e.target)).filter(Boolean);
 
   return (
-    <div className="w-80 shrink-0 border-l bg-card overflow-y-auto">
+    <div className="h-full overflow-y-auto bg-card">
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           {isTask ? (
