@@ -190,6 +190,12 @@ export function AgentsPage() {
 
               <Separator />
 
+              {/* Social */}
+              <div className="flex gap-4 text-xs text-muted-foreground">
+                <span><span className="font-semibold text-foreground">{agent.likes.toLocaleString()}</span> likes</span>
+                <span><span className="font-semibold text-foreground">{agent.followers.toLocaleString()}</span> followers</span>
+              </div>
+
               {/* Description */}
               <p className="text-sm text-muted-foreground line-clamp-2">{agent.purpose}</p>
 
