@@ -226,7 +226,7 @@ export function RulesPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
           {filtered.map((rule) => (
             <Card key={rule.id} className="flex flex-col">
               <CardHeader className="flex-1">
