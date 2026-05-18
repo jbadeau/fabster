@@ -151,9 +151,9 @@ export function AgentsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="flex flex-wrap gap-4">
         {AGENTS.map((agent) => (
-          <Card key={agent.id} className="overflow-hidden">
+          <Card key={agent.id} className="overflow-hidden w-[260px]">
             <CardContent className="pt-6 flex flex-col items-center gap-3 text-center">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={agent.avatar} alt={agent.name} />
