@@ -288,8 +288,8 @@ export function WorkflowPage() {
 }
 
 function ComposeCanvas({ runId }: { runId?: string }) {
-  const isExecutionMode = Boolean(runId);
   const runStates = runId ? MOCK_RUN_STATES[runId] : undefined;
+  const isExecutionMode = Boolean(runStates);
 
   // Apply execution states to nodes
   const nodesWithState = useMemo(() => {

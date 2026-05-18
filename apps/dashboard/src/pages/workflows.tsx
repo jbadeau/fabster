@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { Plus, Clock, CircleCheck, CircleX, CircleDot, CircleMinus, Loader } from 'lucide-react';
+import { Plus, Clock, CircleCheck, CircleX, CircleDot, CircleMinus, Loader, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-type RunStatus = 'running' | 'success' | 'failed' | 'gated' | 'cancelled';
+type RunStatus = 'draft' | 'running' | 'success' | 'failed' | 'gated' | 'cancelled';
 
 interface Workflow {
   id: string;
@@ -24,6 +24,7 @@ interface Workflow {
 }
 
 const STATUS_CONFIG: Record<RunStatus, { icon: React.ReactNode; label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  draft: { icon: <PenLine className="h-3 w-3" />, label: 'Draft', variant: 'outline' },
   running: { icon: <Loader className="h-3 w-3 animate-spin" />, label: 'Running', variant: 'default' },
   success: { icon: <CircleCheck className="h-3 w-3" />, label: 'Success', variant: 'secondary' },
   failed: { icon: <CircleX className="h-3 w-3" />, label: 'Failed', variant: 'destructive' },
@@ -32,6 +33,7 @@ const STATUS_CONFIG: Record<RunStatus, { icon: React.ReactNode; label: string; v
 };
 
 const MOCK_WORKFLOWS: Workflow[] = [
+  { id: 'draft_1', name: 'create-todomvc', status: 'draft', nodes: { total: 10, completed: 0 }, duration: '-', startedAt: 'just now', mrs: 0 },
   { id: 'run_1715961600', name: 'create-todomvc', status: 'running', nodes: { total: 10, completed: 3 }, duration: '1:47', startedAt: '2 min ago', mrs: 3 },
   { id: 'run_1715954400', name: 'create-todomvc', status: 'success', nodes: { total: 10, completed: 10 }, duration: '4:32', startedAt: '1 hour ago', mrs: 10 },
   { id: 'run_1715947200', name: 'create-todomvc', status: 'failed', nodes: { total: 10, completed: 6 }, duration: '3:21', startedAt: '3 hours ago', mrs: 6 },
