@@ -67,7 +67,7 @@ const AGENTS: Agent[] = [
     avatar: 'https://avatars.githubusercontent.com/u/1024025?v=4',
     initials: 'MO',
     adapter: 'claude-code',
-    purpose: 'Creates workflows from Jira features, breaks epics into executable task graphs.',
+    purpose: 'Creates workflows from Jira features, breaks stories into executable graph of MergeRequests.',
     skills: ['planning', 'jira'],
     costPerTask: '$0.10',
     rating: 4.7,
