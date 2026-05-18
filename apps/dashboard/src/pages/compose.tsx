@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Plus, Play, Save, ClipboardList, Terminal, X } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -96,7 +96,10 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
       <div className="ml-6 text-xs text-muted-foreground">{data.definition}</div>
       {isTask && (
         <div className="mt-1.5 ml-6 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Avatar className="h-4 w-4">
+          <Avatar className="h-5 w-5">
+            {data.agent && (
+              <AvatarImage src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${data.agent}`} alt={data.agent} />
+            )}
             <AvatarFallback className="text-[8px]">
               {(data.agent ?? '?').slice(0, 2).toUpperCase()}
             </AvatarFallback>
@@ -411,6 +414,7 @@ function PropertiesPanel({
         {isTask && data.agent && (
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
+              <AvatarImage src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${data.agent}`} alt={data.agent} />
               <AvatarFallback className="text-[10px]">
                 {data.agent.slice(0, 2).toUpperCase()}
               </AvatarFallback>
