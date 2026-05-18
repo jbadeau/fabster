@@ -24,6 +24,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Plus, Play, Save, ClipboardList, Terminal as TerminalIcon, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -391,8 +392,9 @@ function ComposeCanvas({ runId }: { runId?: string }) {
 
   return (
     <>
-    <div className="flex flex-1 flex-col overflow-hidden">
-    <div className="flex flex-1 overflow-hidden">
+    <ResizablePanelGroup orientation="vertical" className="flex-1 overflow-hidden">
+    <ResizablePanel defaultSize={isExecutionMode && logsOpen ? 70 : 100} minSize={30}>
+    <div className="flex h-full overflow-hidden">
       <div className="flex-1">
         <ReactFlow
           nodes={nodes}
@@ -441,37 +443,41 @@ function ComposeCanvas({ runId }: { runId?: string }) {
       )}
 
     </div>
+    </ResizablePanel>
 
-      {/* Bottom log panel (toggleable, execution mode only) */}
-      {isExecutionMode && selectedNode && (
-        <div className="shrink-0 border-t bg-card">
-          <button
-            onClick={() => setLogsOpen((o) => !o)}
-            className="flex w-full items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50"
-          >
-            <div className="flex items-center gap-2">
-              <TerminalIcon className="h-3 w-3" />
-              <span>Logs — {(selectedNode.data as NodeData).label}</span>
-            </div>
-            {logsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
-          </button>
-          {logsOpen && (
-            <div className="max-h-48 overflow-y-auto px-4 pb-3 font-mono text-xs">
-              {(MOCK_NODE_LOGS[(selectedNode.data as NodeData).label ? selectedNode.id : ''] ?? MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
-                <div className="flex flex-col gap-0.5">
-                  {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
-                    <span key={i} className={logColor(line)}>{line}</span>
-                  ))}
+      {/* Bottom log panel (resizable, execution mode only) */}
+      {isExecutionMode && selectedNode && logsOpen && (
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={30} minSize={15} maxSize={60}>
+            <div className="flex h-full flex-col bg-card">
+              <button
+                onClick={() => setLogsOpen(false)}
+                className="flex shrink-0 items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 border-b"
+              >
+                <div className="flex items-center gap-2">
+                  <TerminalIcon className="h-3 w-3" />
+                  <span>Logs — {(selectedNode.data as NodeData).label}</span>
                 </div>
-              ) : (
-                <span className="text-muted-foreground">No logs yet</span>
-              )}
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <div className="flex-1 overflow-y-auto px-4 py-2 font-mono text-xs">
+                {(MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
+                  <div className="flex flex-col gap-0.5">
+                    {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
+                      <span key={i} className={logColor(line)}>{line}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground">No logs yet</span>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+          </ResizablePanel>
+        </>
       )}
 
-    </div>
+    </ResizablePanelGroup>
 
       <AddNodeDialog
         open={isAddOpen}
