@@ -1,4 +1,3 @@
-import { Star, Heart, Users, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -167,57 +166,32 @@ export function AgentsPage() {
                 </div>
               </div>
 
-              <p className="text-sm text-muted-foreground line-clamp-2">{agent.purpose}</p>
-
               <Separator />
 
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-4 w-full text-center">
-                <div>
-                  <div className="flex items-center justify-center gap-1">
-                    <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
-                    <span className="text-sm font-semibold">{agent.rating}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Rating</p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-center gap-1">
-                    <Heart className="h-3.5 w-3.5 text-red-500" />
-                    <span className="text-sm font-semibold">{agent.likes.toLocaleString()}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Likes</p>
-                </div>
-                <div>
-                  <div className="flex items-center justify-center gap-1">
-                    <Users className="h-3.5 w-3.5 text-blue-500" />
-                    <span className="text-sm font-semibold">{agent.followers.toLocaleString()}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Followers</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Performance */}
-              <div className="grid grid-cols-3 gap-4 w-full text-center">
-                <div>
-                  <div className="flex items-center justify-center gap-1">
-                    <Zap className="h-3.5 w-3.5 text-green-500" />
-                    <span className="text-sm font-semibold">{agent.costPer1kTokens}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">/1K tokens</p>
-                </div>
+              {/* Stats row */}
+              <div className="grid grid-cols-4 gap-2 w-full text-center">
                 <div>
                   <p className="text-sm font-semibold">{agent.tasksCompleted.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">Tasks</p>
+                  <p className="text-[10px] text-muted-foreground">Experience</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{agent.costPer1kTokens}</p>
+                  <p className="text-[10px] text-muted-foreground">Rate</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{agent.followers.toLocaleString()}</p>
+                  <p className="text-[10px] text-muted-foreground">Workflows</p>
                 </div>
                 <div>
                   <p className="text-sm font-semibold">{agent.successRate}%</p>
-                  <p className="text-xs text-muted-foreground">Success</p>
+                  <p className="text-[10px] text-muted-foreground">Success</p>
                 </div>
               </div>
 
               <Separator />
+
+              {/* Description */}
+              <p className="text-sm text-muted-foreground line-clamp-2">{agent.purpose}</p>
 
               {/* Skills */}
               <div className="flex flex-wrap gap-1.5">
