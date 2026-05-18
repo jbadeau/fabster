@@ -3,12 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
+  CardFooter,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 
 interface Agent {
   id: string;
@@ -152,60 +151,87 @@ export function AgentsPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {AGENTS.map((agent) => (
-          <Card key={agent.id} className="text-center w-[200px]">
-            <CardHeader className="items-center pb-2">
+          <Card key={agent.id} className="overflow-hidden">
+            <CardContent className="pt-6 flex flex-col items-center gap-3 text-center">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={agent.avatar} alt={agent.name} />
                 <AvatarFallback className="text-lg">{agent.initials}</AvatarFallback>
               </Avatar>
-              <CardTitle className="mt-2">{agent.name}</CardTitle>
-              <p className="text-xs font-medium text-muted-foreground">{agent.role}</p>
-              <CardDescription className="line-clamp-2 mt-1">{agent.purpose}</CardDescription>
-              <Badge variant="outline" className="mt-1">{agent.model}</Badge>
-            </CardHeader>
 
-            <CardContent className="space-y-3 px-3">
+              <div>
+                <h3 className="text-lg font-semibold">{agent.name}</h3>
+                <p className="text-sm text-muted-foreground">{agent.role}</p>
+              </div>
+
+              <Badge variant="outline">{agent.model}</Badge>
+
+              <p className="text-sm text-muted-foreground line-clamp-2">{agent.purpose}</p>
+
+              <Separator />
+
               {/* Stats */}
-              <div className="flex justify-between text-xs">
-                <div className="flex items-center gap-1">
-                  <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                  <span className="font-semibold">{agent.rating}</span>
+              <div className="grid grid-cols-3 gap-4 w-full text-center">
+                <div>
+                  <div className="flex items-center justify-center gap-1">
+                    <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+                    <span className="text-sm font-semibold">{agent.rating}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Rating</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Heart className="h-3 w-3 text-red-500" />
-                  <span className="font-semibold">{agent.likes}</span>
+                <div>
+                  <div className="flex items-center justify-center gap-1">
+                    <Heart className="h-3.5 w-3.5 text-red-500" />
+                    <span className="text-sm font-semibold">{agent.likes.toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Likes</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Users className="h-3 w-3 text-blue-500" />
-                  <span className="font-semibold">{agent.followers}</span>
+                <div>
+                  <div className="flex items-center justify-center gap-1">
+                    <Users className="h-3.5 w-3.5 text-blue-500" />
+                    <span className="text-sm font-semibold">{agent.followers.toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Followers</p>
                 </div>
               </div>
 
               <Separator />
 
-              {/* Cost + Performance */}
-              <div className="flex justify-between text-xs">
-                <div className="flex items-center gap-1">
-                  <Zap className="h-3 w-3 text-green-500" />
-                  <span className="font-semibold">{agent.costPer1kTokens}</span>
+              {/* Performance */}
+              <div className="grid grid-cols-3 gap-4 w-full text-center">
+                <div>
+                  <div className="flex items-center justify-center gap-1">
+                    <Zap className="h-3.5 w-3.5 text-green-500" />
+                    <span className="text-sm font-semibold">{agent.costPer1kTokens}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">/1K tokens</p>
                 </div>
-                <span className="font-semibold">{agent.tasksCompleted.toLocaleString()} tasks</span>
-                <span className="font-semibold">{agent.successRate}%</span>
+                <div>
+                  <p className="text-sm font-semibold">{agent.tasksCompleted.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Tasks</p>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{agent.successRate}%</p>
+                  <p className="text-xs text-muted-foreground">Success</p>
+                </div>
               </div>
 
               <Separator />
 
               {/* Skills */}
-              <div className="flex flex-wrap justify-center gap-1">
+              <div className="flex flex-wrap justify-center gap-1.5">
                 {agent.skills.map((skill) => (
-                  <Badge key={skill} variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Badge key={skill} variant="secondary">
                     {skill}
                   </Badge>
                 ))}
               </div>
             </CardContent>
+
+            <CardFooter>
+              <Button className="w-full" size="sm" variant="outline">View Profile</Button>
+            </CardFooter>
           </Card>
         ))}
       </div>
