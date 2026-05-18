@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
 import {
   ReactFlow,
   Controls,
@@ -25,7 +24,6 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Plus, Play, Save, ClipboardList, Terminal as TerminalIcon, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -337,7 +335,6 @@ function ComposeCanvas({ runId }: { runId?: string }) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [logsOpen, setLogsOpen] = useState(false);
-  const logsPanelRef = useRef<ImperativePanelHandle>(null);
   const { fitView } = useReactFlow();
 
   // Resize canvas when sidebar opens/closes
@@ -346,16 +343,6 @@ function ComposeCanvas({ runId }: { runId?: string }) {
     return () => clearTimeout(timer);
   }, [selectedNodeId, fitView]);
 
-  // Expand/collapse log panel
-  useEffect(() => {
-    const panel = logsPanelRef.current;
-    if (!panel) return;
-    if (logsOpen) {
-      panel.resize(40);
-    } else {
-      panel.resize(0);
-    }
-  }, [logsOpen]);
 
   const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
 
@@ -405,10 +392,9 @@ function ComposeCanvas({ runId }: { runId?: string }) {
 
   return (
     <>
-    <ResizablePanelGroup orientation="vertical" className="flex-1 overflow-hidden">
-    <ResizablePanel minSize={10}>
-    <div className="flex h-full overflow-hidden">
-      <div className="flex-1">
+    <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex-1">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -444,6 +430,34 @@ function ComposeCanvas({ runId }: { runId?: string }) {
             )}
           </Panel>
         </ReactFlow>
+        </div>
+
+        {/* Bottom log panel (under canvas only, not sidebar) */}
+        {isExecutionMode && logsOpen && selectedNode && (
+          <div className="shrink-0 h-64 border-t bg-card flex flex-col">
+            <button
+              onClick={() => setLogsOpen(false)}
+              className="flex shrink-0 items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 border-b"
+            >
+              <div className="flex items-center gap-2">
+                <TerminalIcon className="h-3 w-3" />
+                <span>Logs — {(selectedNode.data as NodeData).label}</span>
+              </div>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            <div className="flex-1 overflow-y-auto px-4 py-2 font-mono text-xs">
+              {(MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
+                <div className="flex flex-col gap-0.5">
+                  {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
+                    <span key={i} className={logColor(line)}>{line}</span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-muted-foreground">No logs yet</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Properties sidebar */}
@@ -456,48 +470,6 @@ function ComposeCanvas({ runId }: { runId?: string }) {
       )}
 
     </div>
-    </ResizablePanel>
-
-      {/* Bottom log panel (resizable, always rendered in execution mode) */}
-      {isExecutionMode && (
-        <>
-          <ResizableHandle withHandle />
-          <ResizablePanel
-            ref={logsPanelRef}
-            defaultSize={0}
-            minSize={0}
-            maxSize={80}
-            collapsible
-            collapsedSize={0}
-          >
-            <div className="flex h-full flex-col bg-card">
-              <button
-                onClick={() => setLogsOpen(false)}
-                className="flex shrink-0 items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 border-b"
-              >
-                <div className="flex items-center gap-2">
-                  <TerminalIcon className="h-3 w-3" />
-                  <span>Logs{selectedNode ? ` — ${(selectedNode.data as NodeData).label}` : ''}</span>
-                </div>
-                <ChevronDown className="h-3 w-3" />
-              </button>
-              <div className="flex-1 overflow-y-auto px-4 py-2 font-mono text-xs">
-                {selectedNode && (MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
-                  <div className="flex flex-col gap-0.5">
-                    {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
-                      <span key={i} className={logColor(line)}>{line}</span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">No logs yet</span>
-                )}
-              </div>
-            </div>
-          </ResizablePanel>
-        </>
-      )}
-
-    </ResizablePanelGroup>
 
       <AddNodeDialog
         open={isAddOpen}
