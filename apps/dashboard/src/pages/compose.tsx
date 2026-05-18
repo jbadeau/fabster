@@ -83,7 +83,7 @@ function resolveTemplate(template: string, inputs?: SchemaField[]): string {
 function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
   const isTask = data.type === 'task';
   return (
-    <div className={`rounded-lg border bg-card p-3 shadow-sm w-[200px] relative ${selected ? 'ring-2 ring-primary' : ''}`}>
+    <div className={`rounded-md border border-border/50 bg-card p-3 shadow-xs w-[200px] relative ${selected ? 'ring-1 ring-primary' : ''}`}>
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
       <div className="flex items-center gap-2">
         {isTask ? (
