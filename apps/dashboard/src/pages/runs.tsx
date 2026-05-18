@@ -23,7 +23,7 @@ type RunStatus = 'running' | 'success' | 'failed' | 'gated' | 'cancelled';
 
 interface Run {
   id: string;
-  job: string;
+  workflow: string;
   status: RunStatus;
   nodes: { total: number; completed: number };
   duration: string;
@@ -44,7 +44,7 @@ const STATUS_CONFIG: Record<RunStatus, { icon: React.ReactNode; label: string; v
 const MOCK_RUNS: Run[] = [
   {
     id: 'run_1715961600',
-    job: 'create-todomvc',
+    workflow: 'create-todomvc',
     status: 'running',
     nodes: { total: 10, completed: 6 },
     duration: '2:47',
@@ -55,7 +55,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715958000',
-    job: 'add-auth-flow',
+    workflow: 'add-auth-flow',
     status: 'gated',
     nodes: { total: 6, completed: 5 },
     duration: '3:12',
@@ -66,7 +66,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715954400',
-    job: 'create-dashboard',
+    workflow: 'create-dashboard',
     status: 'success',
     nodes: { total: 8, completed: 8 },
     duration: '4:32',
@@ -77,7 +77,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715950800',
-    job: 'add-ci-pipeline',
+    workflow: 'add-ci-pipeline',
     status: 'success',
     nodes: { total: 4, completed: 4 },
     duration: '1:03',
@@ -88,7 +88,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715947200',
-    job: 'create-api-gateway',
+    workflow: 'create-api-gateway',
     status: 'failed',
     nodes: { total: 7, completed: 4 },
     duration: '5:21',
@@ -99,7 +99,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715943600',
-    job: 'refactor-auth-module',
+    workflow: 'refactor-auth-module',
     status: 'success',
     nodes: { total: 5, completed: 5 },
     duration: '1:48',
@@ -110,7 +110,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715940000',
-    job: 'add-monitoring',
+    workflow: 'add-monitoring',
     status: 'cancelled',
     nodes: { total: 3, completed: 1 },
     duration: '0:42',
@@ -121,7 +121,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715936400',
-    job: 'create-design-system',
+    workflow: 'create-design-system',
     status: 'success',
     nodes: { total: 12, completed: 12 },
     duration: '8:15',
@@ -132,7 +132,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715932800',
-    job: 'add-e2e-tests',
+    workflow: 'add-e2e-tests',
     status: 'success',
     nodes: { total: 5, completed: 5 },
     duration: '2:33',
@@ -143,7 +143,7 @@ const MOCK_RUNS: Run[] = [
   },
   {
     id: 'run_1715929200',
-    job: 'migrate-to-nx',
+    workflow: 'migrate-to-nx',
     status: 'success',
     nodes: { total: 9, completed: 9 },
     duration: '6:02',
@@ -161,7 +161,7 @@ export function RunsPage() {
       <div>
         <h2 className="text-lg font-semibold">Runs</h2>
         <p className="text-sm text-muted-foreground">
-          Job execution history and live runs
+          Workflow execution history and live runs
         </p>
       </div>
 
@@ -169,7 +169,7 @@ export function RunsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Job</TableHead>
+              <TableHead>Workflow</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Progress</TableHead>
               <TableHead className="text-right">Duration</TableHead>
@@ -182,7 +182,7 @@ export function RunsPage() {
               const status = STATUS_CONFIG[run.status];
               return (
                 <TableRow key={run.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/runs/${run.id}`)}>
-                  <TableCell className="font-medium">{run.job}</TableCell>
+                  <TableCell className="font-medium">{run.workflow}</TableCell>
                   <TableCell>
                     <Badge variant={status.variant} className="gap-1">
                       {status.icon}

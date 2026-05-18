@@ -32,7 +32,7 @@ interface RunNode {
 
 interface RunData {
   id: string;
-  job: string;
+  workflow: string;
   status: 'running' | 'success' | 'failed' | 'gated' | 'cancelled';
   totalDuration: number; // seconds
   startedAt: string;
@@ -61,7 +61,7 @@ const BAR_COLORS: Record<string, string> = {
 const MOCK_RUNS: Record<string, RunData> = {
   run_1715961600: {
     id: 'run_1715961600',
-    job: 'create-todomvc',
+    workflow: 'create-todomvc',
     status: 'running',
     totalDuration: 272,
     startedAt: '2 min ago',
@@ -80,7 +80,7 @@ const MOCK_RUNS: Record<string, RunData> = {
   },
   run_1715954400: {
     id: 'run_1715954400',
-    job: 'create-dashboard',
+    workflow: 'create-dashboard',
     status: 'success',
     totalDuration: 272,
     startedAt: '1 hour ago',
@@ -142,7 +142,7 @@ export function RunDetailPage() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold">{run.job}</h2>
+            <h2 className="text-lg font-semibold">{run.workflow}</h2>
             <Badge variant={runStatusBadge.variant} className="gap-1">
               {runStatusBadge.icon}
               {runStatusBadge.label}

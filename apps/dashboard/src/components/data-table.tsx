@@ -94,7 +94,7 @@ import { GripVerticalIcon, CircleCheckIcon, LoaderIcon, EllipsisVerticalIcon, Co
 
 export const schema = z.object({
   id: z.number(),
-  job: z.string(),
+  workflow: z.string(),
   status: z.string(),
   nodes: z.number(),
   duration: z.string(),
@@ -162,7 +162,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "job",
+    accessorKey: "workflow",
     header: "Workflow",
     cell: ({ row }) => {
       return <TableCellViewer item={row.original} />
@@ -584,10 +584,10 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
   const isMobile = useIsMobile()
   return (
     <Drawer direction={isMobile ? "bottom" : "right"}>
-      <DrawerTrigger render={<Button variant="link" className="w-fit px-0 text-left text-foreground" />}>{item.job}</DrawerTrigger>
+      <DrawerTrigger render={<Button variant="link" className="w-fit px-0 text-left text-foreground" />}>{item.workflow}</DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="gap-1">
-          <DrawerTitle>{item.job}</DrawerTitle>
+          <DrawerTitle>{item.workflow}</DrawerTitle>
           <DrawerDescription>
             {item.nodes} nodes · {item.duration} · {item.agent}
           </DrawerDescription>
