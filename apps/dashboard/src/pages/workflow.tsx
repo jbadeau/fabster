@@ -449,7 +449,7 @@ function ComposeCanvas({ runId }: { runId?: string }) {
       {isExecutionMode && selectedNode && logsOpen && (
         <>
           <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={30} minSize={15} maxSize={60}>
+          <ResizablePanel defaultSize={30} minSize={10} maxSize={80}>
             <div className="flex h-full flex-col bg-card">
               <button
                 onClick={() => setLogsOpen(false)}
