@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ImperativePanelHandle } from 'react-resizable-panels';
 import {
   ReactFlow,
   Controls,
@@ -240,10 +241,18 @@ function ComposeCanvas() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const { fitView } = useReactFlow();
+  const propertiesPanelRef = useRef<ImperativePanelHandle>(null);
 
-  // Resize canvas when sidebar opens/closes
+  // Expand/collapse properties panel when node selected/deselected
   useEffect(() => {
-    const timer = setTimeout(() => fitView({ padding: 0.1 }), 50);
+    const panel = propertiesPanelRef.current;
+    if (!panel) return;
+    if (selectedNodeId) {
+      if (panel.isCollapsed()) panel.expand();
+    } else {
+      if (!panel.isCollapsed()) panel.collapse();
+    }
+    const timer = setTimeout(() => fitView({ padding: 0.1 }), 100);
     return () => clearTimeout(timer);
   }, [selectedNodeId, fitView]);
 
@@ -295,7 +304,7 @@ function ComposeCanvas() {
   return (
     <>
     <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
-      <ResizablePanel defaultSize={selectedNode ? 60 : 100} minSize={40}>
+      <ResizablePanel defaultSize={100} minSize={40}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -330,20 +339,25 @@ function ComposeCanvas() {
       </ResizablePanel>
 
       {/* Properties sidebar */}
-      {selectedNode && (
-        <>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={40} minSize={25} maxSize={60}>
-            <PropertiesPanel
-              node={selectedNode}
-              edges={edges}
-              allNodes={nodes}
-              onUpdate={(data) => updateNodeData(selectedNode.id, data)}
-              onClose={() => setSelectedNodeId(null)}
-            />
-          </ResizablePanel>
-        </>
-      )}
+      <ResizableHandle withHandle />
+      <ResizablePanel
+        ref={propertiesPanelRef}
+        defaultSize={0}
+        minSize={25}
+        maxSize={60}
+        collapsible
+        collapsedSize={0}
+      >
+        {selectedNode && (
+          <PropertiesPanel
+            node={selectedNode}
+            edges={edges}
+            allNodes={nodes}
+            onUpdate={(data) => updateNodeData(selectedNode.id, data)}
+            onClose={() => setSelectedNodeId(null)}
+          />
+        )}
+      </ResizablePanel>
 
     </ResizablePanelGroup>
 
