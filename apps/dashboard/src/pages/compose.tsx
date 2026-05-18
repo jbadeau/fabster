@@ -328,8 +328,6 @@ function ComposeCanvas() {
       {selectedNode && (
         <PropertiesPanel
           node={selectedNode}
-          edges={edges}
-          allNodes={nodes}
           onUpdate={(data) => updateNodeData(selectedNode.id, data)}
           onClose={() => setSelectedNodeId(null)}
         />
@@ -349,23 +347,15 @@ function ComposeCanvas() {
 
 function PropertiesPanel({
   node,
-  edges,
-  allNodes,
   onUpdate,
   onClose,
 }: {
   node: Node;
-  edges: Edge[];
-  allNodes: Node[];
   onUpdate: (data: Partial<NodeData>) => void;
   onClose: () => void;
 }) {
   const data = node.data as NodeData;
   const isTask = data.type === 'task';
-  const incomingEdges = edges.filter((e) => e.target === node.id);
-  const outgoingEdges = edges.filter((e) => e.source === node.id);
-  const dependsOn = incomingEdges.map((e) => allNodes.find((n) => n.id === e.source)).filter(Boolean);
-  const dependents = outgoingEdges.map((e) => allNodes.find((n) => n.id === e.target)).filter(Boolean);
 
   return (
     <div className="w-[20%] min-w-[280px] shrink-0 border-l overflow-y-auto bg-card">
@@ -534,34 +524,6 @@ function PropertiesPanel({
           </>
         )}
 
-        <Separator />
-
-        {/* Dependencies */}
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-muted-foreground">Depends On</Label>
-          {dependsOn.length === 0 ? (
-            <span className="text-xs text-muted-foreground">None (root node)</span>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {dependsOn.map((dep) => (
-                <span key={dep!.id} className="text-xs">{(dep!.data as NodeData).label}</span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-xs text-muted-foreground">Dependents</Label>
-          {dependents.length === 0 ? (
-            <span className="text-xs text-muted-foreground">None (leaf node)</span>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {dependents.map((dep) => (
-                <span key={dep!.id} className="text-xs">{(dep!.data as NodeData).label}</span>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
