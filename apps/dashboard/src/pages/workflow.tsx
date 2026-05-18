@@ -235,24 +235,46 @@ const initialEdges: Edge[] = [
 ];
 
 // Mock execution states for runs
+// Mock execution states — each matches the parallelized DAG
 const MOCK_RUN_STATES: Record<string, Record<string, ExecutionStatus>> = {
+  // Running: init done, plugins done, 3 parallel nodes executing
   run_1715961600: {
-    'init-workspace': 'complete', 'add-react': 'complete', 'add-node': 'complete',
-    'generate-frontend': 'running', 'write-openapi-spec': 'running', 'generate-backend': 'running',
-    'generate-client-lib': 'pending', 'generate-api-client': 'pending',
-    'implement-backend': 'pending', 'implement-frontend': 'pending',
+    'init-workspace': 'complete',
+    'add-react': 'complete',
+    'add-node': 'complete',
+    'generate-frontend': 'running',
+    'write-openapi-spec': 'running',
+    'generate-backend': 'running',
+    'generate-client-lib': 'pending',
+    'generate-api-client': 'pending',
+    'implement-backend': 'pending',
+    'implement-frontend': 'pending',
   },
+  // Success: all nodes complete
   run_1715954400: {
-    'init-workspace': 'complete', 'add-react': 'complete', 'add-node': 'complete',
-    'generate-frontend': 'complete', 'write-openapi-spec': 'complete', 'generate-backend': 'complete',
-    'generate-client-lib': 'complete', 'generate-api-client': 'complete',
-    'implement-backend': 'complete', 'implement-frontend': 'complete',
+    'init-workspace': 'complete',
+    'add-react': 'complete',
+    'add-node': 'complete',
+    'generate-frontend': 'complete',
+    'write-openapi-spec': 'complete',
+    'generate-backend': 'complete',
+    'generate-client-lib': 'complete',
+    'generate-api-client': 'complete',
+    'implement-backend': 'complete',
+    'implement-frontend': 'complete',
   },
+  // Failed: api-client generation failed, downstream skipped
   run_1715947200: {
-    'init-workspace': 'complete', 'add-react': 'complete', 'add-node': 'complete',
-    'generate-frontend': 'complete', 'write-openapi-spec': 'complete', 'generate-backend': 'complete',
-    'generate-client-lib': 'complete', 'generate-api-client': 'failed',
-    'implement-backend': 'skipped', 'implement-frontend': 'skipped',
+    'init-workspace': 'complete',
+    'add-react': 'complete',
+    'add-node': 'complete',
+    'generate-frontend': 'complete',
+    'write-openapi-spec': 'complete',
+    'generate-backend': 'complete',
+    'generate-client-lib': 'complete',
+    'generate-api-client': 'failed',
+    'implement-backend': 'complete',
+    'implement-frontend': 'skipped',
   },
 };
 

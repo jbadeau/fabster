@@ -32,14 +32,9 @@ const STATUS_CONFIG: Record<RunStatus, { icon: React.ReactNode; label: string; v
 };
 
 const MOCK_WORKFLOWS: Workflow[] = [
-  { id: 'run_1715961600', name: 'create-todomvc', status: 'running', nodes: { total: 10, completed: 6 }, duration: '2:47', startedAt: '2 min ago', mrs: 4 },
-  { id: 'run_1715958000', name: 'add-auth-flow', status: 'gated', nodes: { total: 6, completed: 5 }, duration: '3:12', startedAt: '15 min ago', mrs: 5 },
-  { id: 'run_1715954400', name: 'create-dashboard', status: 'success', nodes: { total: 8, completed: 8 }, duration: '4:32', startedAt: '1 hour ago', mrs: 8 },
-  { id: 'run_1715950800', name: 'add-ci-pipeline', status: 'success', nodes: { total: 4, completed: 4 }, duration: '1:03', startedAt: '2 hours ago', mrs: 4 },
-  { id: 'run_1715947200', name: 'create-api-gateway', status: 'failed', nodes: { total: 7, completed: 4 }, duration: '5:21', startedAt: '3 hours ago', mrs: 3 },
-  { id: 'run_1715943600', name: 'refactor-auth-module', status: 'success', nodes: { total: 5, completed: 5 }, duration: '1:48', startedAt: '5 hours ago', mrs: 5 },
-  { id: 'run_1715940000', name: 'add-monitoring', status: 'cancelled', nodes: { total: 3, completed: 1 }, duration: '0:42', startedAt: '6 hours ago', mrs: 1 },
-  { id: 'run_1715936400', name: 'create-design-system', status: 'success', nodes: { total: 12, completed: 12 }, duration: '8:15', startedAt: 'yesterday', mrs: 12 },
+  { id: 'run_1715961600', name: 'create-todomvc', status: 'running', nodes: { total: 10, completed: 3 }, duration: '1:47', startedAt: '2 min ago', mrs: 3 },
+  { id: 'run_1715954400', name: 'create-todomvc', status: 'success', nodes: { total: 10, completed: 10 }, duration: '4:32', startedAt: '1 hour ago', mrs: 10 },
+  { id: 'run_1715947200', name: 'create-todomvc', status: 'failed', nodes: { total: 10, completed: 6 }, duration: '3:21', startedAt: '3 hours ago', mrs: 6 },
 ];
 
 export function WorkflowsPage() {
