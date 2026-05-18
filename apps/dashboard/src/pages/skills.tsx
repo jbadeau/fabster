@@ -197,7 +197,7 @@ export function SkillsPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,260px))]">
           {filtered.map((skill) => (
             <Card key={skill.id} className="flex flex-col">
               <CardHeader className="flex-1">

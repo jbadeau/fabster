@@ -226,7 +226,7 @@ export function TasksPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(220px,260px))]">
           {filtered.map((task) => (
             <Card key={task.id} className="flex flex-col">
               <CardHeader className="flex-1">
