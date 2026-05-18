@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ReactFlow,
   Controls,
@@ -24,11 +23,6 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Plus, Play, Save, ClipboardList, Terminal, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -241,18 +235,10 @@ function ComposeCanvas() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const { fitView } = useReactFlow();
-  const propertiesPanelRef = useRef<ImperativePanelHandle>(null);
 
-  // Expand/collapse properties panel when node selected/deselected
+  // Resize canvas when sidebar opens/closes
   useEffect(() => {
-    const panel = propertiesPanelRef.current;
-    if (!panel) return;
-    if (selectedNodeId) {
-      if (panel.isCollapsed()) panel.expand();
-    } else {
-      if (!panel.isCollapsed()) panel.collapse();
-    }
-    const timer = setTimeout(() => fitView({ padding: 0.1 }), 100);
+    const timer = setTimeout(() => fitView({ padding: 0.1 }), 50);
     return () => clearTimeout(timer);
   }, [selectedNodeId, fitView]);
 
@@ -303,8 +289,8 @@ function ComposeCanvas() {
 
   return (
     <>
-    <ResizablePanelGroup orientation="horizontal" className="flex-1 overflow-hidden">
-      <ResizablePanel defaultSize={100} minSize={40}>
+    <div className="flex flex-1 overflow-hidden">
+      <div className="flex-1">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -336,30 +322,20 @@ function ComposeCanvas() {
             </Button>
           </Panel>
         </ReactFlow>
-      </ResizablePanel>
+      </div>
 
       {/* Properties sidebar */}
-      <ResizableHandle withHandle />
-      <ResizablePanel
-        ref={propertiesPanelRef}
-        defaultSize={0}
-        minSize={25}
-        maxSize={60}
-        collapsible
-        collapsedSize={0}
-      >
-        {selectedNode && (
-          <PropertiesPanel
-            node={selectedNode}
-            edges={edges}
-            allNodes={nodes}
-            onUpdate={(data) => updateNodeData(selectedNode.id, data)}
-            onClose={() => setSelectedNodeId(null)}
-          />
-        )}
-      </ResizablePanel>
+      {selectedNode && (
+        <PropertiesPanel
+          node={selectedNode}
+          edges={edges}
+          allNodes={nodes}
+          onUpdate={(data) => updateNodeData(selectedNode.id, data)}
+          onClose={() => setSelectedNodeId(null)}
+        />
+      )}
 
-    </ResizablePanelGroup>
+    </div>
 
       <AddNodeDialog
         open={isAddOpen}
@@ -392,7 +368,7 @@ function PropertiesPanel({
   const dependents = outgoingEdges.map((e) => allNodes.find((n) => n.id === e.target)).filter(Boolean);
 
   return (
-    <div className="h-full overflow-y-auto bg-card">
+    <div className="w-[40%] shrink-0 border-l overflow-y-auto bg-card">
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           {isTask ? (
