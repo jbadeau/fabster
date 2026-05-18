@@ -91,7 +91,7 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
         ) : (
           <Terminal className="h-4 w-4 text-green-500 shrink-0" />
         )}
-        <span className="text-sm font-medium">{data.label}</span>
+        <span className="text-xs font-medium">{data.label}</span>
       </div>
       <div className="ml-6 text-xs text-muted-foreground">{data.definition}</div>
       {isTask && (
