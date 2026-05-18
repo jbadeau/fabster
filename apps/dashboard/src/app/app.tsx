@@ -11,6 +11,9 @@ import { SkillsPage } from '@/pages/skills';
 import { TasksPage } from '@/pages/tasks';
 import { CommandsPage } from '@/pages/commands';
 import { RulesPage } from '@/pages/rules';
+import { SettingsPage } from '@/pages/settings';
+import { SearchPage } from '@/pages/search';
+import { HelpPage } from '@/pages/help';
 
 export function App() {
   return (
@@ -32,6 +35,9 @@ export function App() {
                   <Route path="/catalog/tasks" element={<TasksPage />} />
                   <Route path="/catalog/commands" element={<CommandsPage />} />
                   <Route path="/catalog/rules" element={<RulesPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/help" element={<HelpPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </div>

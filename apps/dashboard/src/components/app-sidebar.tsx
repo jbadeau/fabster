@@ -77,21 +77,21 @@ const data = {
   navSecondary: [
     {
       title: "Settings",
-      url: "#",
+      url: "/settings",
       icon: (
         <Settings2Icon />
       ),
     },
     {
       title: "Get Help",
-      url: "#",
+      url: "/help",
       icon: (
         <CircleHelpIcon />
       ),
     },
     {
       title: "Search",
-      url: "#",
+      url: "/search",
       icon: (
         <SearchIcon />
       ),
