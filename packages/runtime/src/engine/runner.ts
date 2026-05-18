@@ -79,12 +79,40 @@ export async function runWorkflow(
   // Ensure repo has at least one commit
   await ensureInitialCommit(repoCwd);
 
-  const nodeResults: NodeResult[] = [];
+  const nodeResults = new Map<string, NodeResult>();
   const nodeOutputs = new Map<string, Record<string, string | number | boolean>>();
-  let previousBranch = 'main';
-  let failed = false;
+  const completed = new Set<string>();
+  const failed = new Set<string>();
 
+  // Build dependency map for quick lookup
+  const dependencyMap = new Map<string, readonly string[]>();
   for (const node of nodes) {
+    dependencyMap.set(node.id, node.dependsOn);
+  }
+
+  // Check if all dependencies of a node are satisfied
+  function isReady(nodeId: string): boolean {
+    const deps = dependencyMap.get(nodeId) ?? [];
+    return deps.every((d) => completed.has(d));
+  }
+
+  // Check if any dependency failed (node should be skipped)
+  function hasFailed(nodeId: string): boolean {
+    const deps = dependencyMap.get(nodeId) ?? [];
+    return deps.some((d) => failed.has(d));
+  }
+
+  // Find the branch to base this node's worktree on
+  function findBaseBranch(nodeId: string): string {
+    const deps = dependencyMap.get(nodeId) ?? [];
+    if (deps.length === 0) return 'main';
+    // Use the first dependency's branch as the base
+    const depResult = nodeResults.get(deps[0]);
+    return depResult?.branch || 'main';
+  }
+
+  // Execute a single node (extracted from the old loop body)
+  async function executeOneNode(node: typeof nodes[number]): Promise<void> {
     const startTime = Date.now();
     const def = node.definition;
     const branch = `fabster/${workflow.name}/${node.id}`;
@@ -93,15 +121,17 @@ export async function runWorkflow(
     let mrUrl: string | undefined;
     let validationGates: GateResult[] = [];
     let reviewGates: GateResult[] = [];
+    const baseBranch = findBaseBranch(node.id);
 
-    if (failed) {
-      emit?.({ type: 'node:state', nodeId: node.id, state: 'skipped', log: 'Skipped — previous node failed' });
-      nodeResults.push({
+    if (hasFailed(node.id)) {
+      emit?.({ type: 'node:state', nodeId: node.id, state: 'skipped', log: 'Skipped — dependency failed' });
+      nodeResults.set(node.id, {
         id: node.id, definition: def, state: 'skipped', branch: '',
         validationGates: [], reviewGates: [],
-        duration: 0, logs: ['Skipped — previous node failed'], outputs: {},
+        duration: 0, logs: ['Skipped — dependency failed'], outputs: {},
       });
-      continue;
+      failed.add(node.id);
+      return;
     }
 
     try {
@@ -113,13 +143,13 @@ export async function runWorkflow(
         nodeOutputs.set(node.id, outputs);
         logs.push(`Branch ${branch} already exists — skipping`);
         emit?.({ type: 'node:state', nodeId: node.id, state: 'complete', log: `Branch ${branch} already exists — skipping` });
-        nodeResults.push({
+        nodeResults.set(node.id, {
           id: node.id, definition: def, state: 'complete', branch,
           validationGates: [], reviewGates: [],
           duration: Date.now() - startTime, logs, outputs,
         });
-        previousBranch = branch;
-        continue;
+        completed.add(node.id);
+        return;
       }
 
       // === EXECUTING ===
@@ -132,13 +162,10 @@ export async function runWorkflow(
         console.log(`  ⟳ ${node.id} [executing] ${def.kind}: ${def.name}`);
       }
 
-      // Create isolated worktree for this node
-      const worktree = await createWorktree(repoCwd, workflow.name, node.id, previousBranch);
+      const worktree = await createWorktree(repoCwd, workflow.name, node.id, baseBranch);
       logs.push(`Created worktree: ${worktree.worktreePath} (branch: ${worktree.branch})`);
-
       const worktreeCwd = worktree.worktreePath;
 
-      // Provision tools in the worktree
       const tools = def.permissions?.tools ?? [];
       if (tools.length > 0) {
         const toolLog = `Provisioning tools: ${tools.join(', ')}`;
@@ -147,7 +174,6 @@ export async function runWorkflow(
         await provisionTools(tools, worktreeCwd);
       }
 
-      // Create a Mirage workspace pointing at the worktree
       const ws = new Workspace(
         { '/repo': new DiskResource({ root: worktreeCwd }) },
         { mode: 'exec' },
@@ -156,20 +182,19 @@ export async function runWorkflow(
       try {
         const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, ws, worktreeCwd, emit ? (msg) => emit({ type: 'node:log', nodeId: node.id, message: msg }) : undefined);
         logs.push(...execResult.logs);
-
         nodeOutputs.set(node.id, execResult.outputs);
 
         if (!execResult.success) {
           state = 'failed';
-          failed = true;
           emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: 'Execution failed' });
-          nodeResults.push({
+          nodeResults.set(node.id, {
             id: node.id, definition: def, state, branch,
             validationGates: [], reviewGates: [],
             duration: Date.now() - startTime, logs, outputs: execResult.outputs,
           });
+          failed.add(node.id);
           await removeWorktree(repoCwd, worktreeCwd);
-          continue;
+          return;
         }
 
         // === VALIDATING ===
@@ -190,22 +215,18 @@ export async function runWorkflow(
             emit?.({ type: 'node:gate', nodeId: node.id, gate: g });
           }
 
-          const validationFailed = validationGates.some(
-            (g) => !g.passed && g.gate.required !== false,
-          );
-
-          if (validationFailed) {
+          if (validationGates.some((g) => !g.passed && g.gate.required !== false)) {
             state = 'failed';
-            failed = true;
             logs.push('[failed] Validation gates did not pass');
             emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: 'Validation gates did not pass' });
-            nodeResults.push({
+            nodeResults.set(node.id, {
               id: node.id, definition: def, state, branch,
               validationGates, reviewGates: [],
               duration: Date.now() - startTime, logs, outputs: execResult.outputs,
             });
+            failed.add(node.id);
             await removeWorktree(repoCwd, worktreeCwd);
-            continue;
+            return;
           }
         }
 
@@ -228,7 +249,7 @@ export async function runWorkflow(
 
         try {
           const mr = await createMR(
-            worktreeCwd, branch, previousBranch,
+            worktreeCwd, branch, baseBranch,
             `[fabster] ${def.name}`, def.purpose,
           );
           mrUrl = mr ?? undefined;
@@ -253,22 +274,18 @@ export async function runWorkflow(
             emit?.({ type: 'node:gate', nodeId: node.id, gate: g });
           }
 
-          const reviewPending = reviewGates.some(
-            (g) => !g.passed && g.gate.required !== false,
-          );
-
-          if (reviewPending) {
+          if (reviewGates.some((g) => !g.passed && g.gate.required !== false)) {
             state = 'gated';
             logs.push('[gated] Waiting for human approval');
             emit?.({ type: 'node:state', nodeId: node.id, state: 'gated', log: 'Waiting for human approval' });
-            nodeResults.push({
+            nodeResults.set(node.id, {
               id: node.id, definition: def, state, branch, mr: mrUrl,
               validationGates, reviewGates,
               duration: Date.now() - startTime, logs, outputs: nodeOutputs.get(node.id) ?? {},
             });
-            previousBranch = branch;
+            completed.add(node.id); // gated counts as "done" for dependency purposes
             await removeWorktree(repoCwd, worktreeCwd);
-            continue;
+            return;
           }
         }
 
@@ -281,7 +298,6 @@ export async function runWorkflow(
         }
         logs.push('[complete]');
 
-        // Clean up worktree
         await ws.close();
         await removeWorktree(repoCwd, worktreeCwd);
 
@@ -295,28 +311,64 @@ export async function runWorkflow(
       const message = err instanceof Error ? err.message : String(err);
       logs.push(`ERROR: ${message}`);
       state = 'failed';
-      failed = true;
       emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: message });
     }
 
-    nodeResults.push({
-      id: node.id, definition: def, state, branch, mr: mrUrl,
-      validationGates, reviewGates,
-      duration: Date.now() - startTime, logs, outputs: nodeOutputs.get(node.id) ?? {},
-    });
+    if (!nodeResults.has(node.id)) {
+      nodeResults.set(node.id, {
+        id: node.id, definition: def, state, branch, mr: mrUrl,
+        validationGates, reviewGates,
+        duration: Date.now() - startTime, logs, outputs: nodeOutputs.get(node.id) ?? {},
+      });
+    }
 
-    previousBranch = branch;
+    if (state === 'complete') {
+      completed.add(node.id);
+    } else if (state === 'failed') {
+      failed.add(node.id);
+    }
   }
 
-  const overallStatus = nodeResults.some((n) => n.state === 'failed')
+  // Parallel execution: process nodes in waves based on dependency readiness
+  const remaining = new Set(nodes.map((n) => n.id));
+
+  while (remaining.size > 0) {
+    // Find all nodes whose dependencies are satisfied
+    const ready = nodes.filter((n) => remaining.has(n.id) && isReady(n.id));
+
+    if (ready.length === 0) {
+      // No nodes are ready — remaining nodes have unsatisfied deps (failed upstream)
+      for (const nodeId of remaining) {
+        const node = nodes.find((n) => n.id === nodeId)!;
+        emit?.({ type: 'node:state', nodeId, state: 'skipped', log: 'Skipped — dependency failed' });
+        nodeResults.set(nodeId, {
+          id: nodeId, definition: node.definition, state: 'skipped', branch: '',
+          validationGates: [], reviewGates: [],
+          duration: 0, logs: ['Skipped — dependency failed'], outputs: {},
+        });
+      }
+      break;
+    }
+
+    // Execute all ready nodes in parallel
+    await Promise.all(ready.map((node) => {
+      remaining.delete(node.id);
+      return executeOneNode(node);
+    }));
+  }
+
+  // Collect results in original node order
+  const orderedResults = nodes.map((n) => nodeResults.get(n.id)!).filter(Boolean);
+
+  const overallStatus = orderedResults.some((n) => n.state === 'failed')
     ? 'failed'
-    : nodeResults.some((n) => n.state === 'gated')
+    : orderedResults.some((n) => n.state === 'gated')
       ? 'gated'
       : 'success';
 
   emit?.({ type: 'workflow:done', status: overallStatus });
 
-  return { workflow: workflow.name, nodes: nodeResults, status: overallStatus };
+  return { workflow: workflow.name, nodes: orderedResults, status: overallStatus };
 }
 
 function collectDeclaredOutputs(

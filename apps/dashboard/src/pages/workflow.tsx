@@ -238,8 +238,8 @@ const initialEdges: Edge[] = [
 const MOCK_RUN_STATES: Record<string, Record<string, ExecutionStatus>> = {
   run_1715961600: {
     'init-workspace': 'complete', 'add-react': 'complete', 'add-node': 'complete',
-    'generate-frontend': 'complete', 'write-openapi-spec': 'complete', 'generate-backend': 'complete',
-    'generate-client-lib': 'running', 'generate-api-client': 'pending',
+    'generate-frontend': 'running', 'write-openapi-spec': 'running', 'generate-backend': 'running',
+    'generate-client-lib': 'pending', 'generate-api-client': 'pending',
     'implement-backend': 'pending', 'implement-frontend': 'pending',
   },
   run_1715954400: {
