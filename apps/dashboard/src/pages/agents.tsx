@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 
 interface Agent {
@@ -16,10 +16,10 @@ interface Agent {
   role: string;
   avatar: string;
   initials: string;
-  adapter: string;
+  model: string;
   purpose: string;
   skills: string[];
-  costPerTask: string;
+  costPer1kTokens: string;
   rating: number;
   likes: number;
   followers: number;
@@ -32,12 +32,12 @@ const AGENTS: Agent[] = [
     id: '1',
     name: 'Neo',
     role: 'General Purpose',
-    avatar: 'https://avatars.githubusercontent.com/u/124599?v=4',
+    avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Neo&backgroundColor=b6e3f4',
     initials: 'NE',
-    adapter: 'claude-code',
+    model: 'claude-opus-4',
     purpose: 'The One. Handles any task, excels at complex multi-step work with high reasoning.',
     skills: ['nx', 'react', 'node', 'openapi', 'docker', 'terraform'],
-    costPerTask: '$0.25',
+    costPer1kTokens: '$0.25',
     rating: 4.9,
     likes: 1247,
     followers: 5832,
@@ -48,12 +48,12 @@ const AGENTS: Agent[] = [
     id: '2',
     name: 'Smith',
     role: 'Auditor',
-    avatar: 'https://avatars.githubusercontent.com/u/339208?v=4',
+    avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Smith&backgroundColor=c0aede',
     initials: 'SM',
-    adapter: 'claude-code',
+    model: 'claude-sonnet-4',
     purpose: 'Verifies correctness, reviews code quality, and checks compliance against rules.',
     skills: ['nx'],
-    costPerTask: '$0.06',
+    costPer1kTokens: '$0.06',
     rating: 4.8,
     likes: 892,
     followers: 3214,
@@ -64,12 +64,12 @@ const AGENTS: Agent[] = [
     id: '3',
     name: 'Morpheus',
     role: 'Planner',
-    avatar: 'https://avatars.githubusercontent.com/u/1024025?v=4',
+    avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Morpheus&backgroundColor=d1d4f9',
     initials: 'MO',
-    adapter: 'claude-code',
+    model: 'o3',
     purpose: 'Creates workflows from Jira features, breaks stories into executable graph of MergeRequests.',
     skills: ['planning', 'jira'],
-    costPerTask: '$0.10',
+    costPer1kTokens: '$0.10',
     rating: 4.7,
     likes: 634,
     followers: 2891,
@@ -80,12 +80,12 @@ const AGENTS: Agent[] = [
     id: '4',
     name: 'Trinity',
     role: 'Frontend Specialist',
-    avatar: 'https://avatars.githubusercontent.com/u/8186664?v=4',
+    avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Trinity&backgroundColor=ffd5dc',
     initials: 'TR',
-    adapter: 'claude-code',
+    model: 'claude-sonnet-4',
     purpose: 'React components, design systems, accessibility, and state management.',
     skills: ['react', 'nx'],
-    costPerTask: '$0.12',
+    costPer1kTokens: '$0.12',
     rating: 4.8,
     likes: 756,
     followers: 2467,
@@ -96,12 +96,12 @@ const AGENTS: Agent[] = [
     id: '5',
     name: 'Tank',
     role: 'Backend Engineer',
-    avatar: 'https://avatars.githubusercontent.com/u/6764957?v=4',
+    avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Tank&backgroundColor=ffdfbf',
     initials: 'TK',
-    adapter: 'claude-code',
+    model: 'gemini-2.5-pro',
     purpose: 'Node.js APIs, Express/Fastify, databases, and server architecture.',
     skills: ['node', 'docker'],
-    costPerTask: '$0.11',
+    costPer1kTokens: '$0.11',
     rating: 4.6,
     likes: 423,
     followers: 1678,
@@ -112,12 +112,12 @@ const AGENTS: Agent[] = [
     id: '6',
     name: 'Dozer',
     role: 'API Architect',
-    avatar: 'https://avatars.githubusercontent.com/u/4060187?v=4',
+    avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Dozer&backgroundColor=c1f0c1',
     initials: 'DZ',
-    adapter: 'claude-code',
+    model: 'gpt-4o',
     purpose: 'Designs and generates OpenAPI specs, API clients, and contracts.',
     skills: ['openapi', 'node'],
-    costPerTask: '$0.09',
+    costPer1kTokens: '$0.09',
     rating: 4.7,
     likes: 387,
     followers: 1432,
@@ -128,12 +128,12 @@ const AGENTS: Agent[] = [
     id: '7',
     name: 'Oracle',
     role: 'Documentation',
-    avatar: 'https://avatars.githubusercontent.com/u/11247099?v=4',
+    avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Oracle&backgroundColor=ffeab6',
     initials: 'OR',
-    adapter: 'claude-code',
+    model: 'claude-haiku-4',
     purpose: 'Writes docs, READMEs, ADRs, API documentation, and onboarding guides.',
     skills: ['docs', 'openapi'],
-    costPerTask: '$0.07',
+    costPer1kTokens: '$0.07',
     rating: 4.5,
     likes: 298,
     followers: 1105,
@@ -157,12 +157,13 @@ export function AgentsPage() {
           <Card key={agent.id} className="text-center w-[200px]">
             <CardHeader className="items-center pb-2">
               <Avatar className="h-20 w-20">
+                <AvatarImage src={agent.avatar} alt={agent.name} />
                 <AvatarFallback className="text-lg">{agent.initials}</AvatarFallback>
               </Avatar>
               <CardTitle className="mt-2">{agent.name}</CardTitle>
               <p className="text-xs font-medium text-muted-foreground">{agent.role}</p>
               <CardDescription className="line-clamp-2 mt-1">{agent.purpose}</CardDescription>
-              <Badge variant="outline" className="mt-1">{agent.adapter}</Badge>
+              <Badge variant="outline" className="mt-1">{agent.model}</Badge>
             </CardHeader>
 
             <CardContent className="space-y-3 px-3">
@@ -188,7 +189,7 @@ export function AgentsPage() {
               <div className="flex justify-between text-xs">
                 <div className="flex items-center gap-1">
                   <Zap className="h-3 w-3 text-green-500" />
-                  <span className="font-semibold">{agent.costPerTask}</span>
+                  <span className="font-semibold">{agent.costPer1kTokens}</span>
                 </div>
                 <span className="font-semibold">{agent.tasksCompleted.toLocaleString()} tasks</span>
                 <span className="font-semibold">{agent.successRate}%</span>
