@@ -3,7 +3,7 @@ import { command, string, run, successfulBuild, linted } from '@fabster/core';
 export const generateApp = command({
   name: 'generate-app',
   purpose: 'Generate an application using an Nx generator',
-  steps: [run('npx nx generate {generator} --name={name} --directory={directory} --no-interactive')],
+  steps: [run('npm install'), run('npx nx generate {generator} --name={name} --directory={directory} --no-interactive')],
   inputs: {
     generator: string('Nx generator, e.g. @nx/react:app'),
     name: string('Application name'),

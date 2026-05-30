@@ -2,7 +2,7 @@ import type { InputValue, WorkflowDefinition } from '@fabster/core';
 import type { GateResult, NodeResult, NodeState, RunOptions, RunResult, WorkflowEvent } from '../types.js';
 import { extractNodes } from './graph.js';
 import { executeNode } from './node-executor.js';
-import { provisionTools, miseExec } from './mise.js';
+import { provisionTools } from './mise.js';
 import {
   createWorktree,
   commitChanges,
@@ -141,23 +141,6 @@ export async function runWorkflow(
       const worktree = await createWorktree(repoCwd, workflow.name, node.id, baseBranch);
       logs.push(`Created worktree: ${worktree.worktreePath} (branch: ${worktree.branch})`);
       const worktreeCwd = worktree.worktreePath;
-
-      // Install dependencies if package.json exists (node_modules is gitignored)
-      {
-        const { existsSync } = await import('node:fs');
-        const pkgPath = (await import('node:path')).join(worktreeCwd, 'package.json');
-        if (existsSync(pkgPath)) {
-          const installLog = 'Installing dependencies in worktree...';
-          logs.push(installLog);
-          emit?.({ type: 'node:log', nodeId: node.id, message: installLog });
-          const installResult = await miseExec('npm install', worktreeCwd);
-          if (installResult.exitCode !== 0) {
-            const errMsg = `npm install failed (exit ${installResult.exitCode}): ${installResult.stderr}`;
-            logs.push(errMsg);
-            emit?.({ type: 'node:log', nodeId: node.id, message: errMsg });
-          }
-        }
-      }
 
       const tools = def.permissions?.tools ?? [];
       if (tools.length > 0) {

@@ -103,6 +103,7 @@ const generateApiClient = command({
   name: 'generate-api-client',
   purpose: 'Generate a TypeScript fetch API client from an OpenAPI spec using openapi-generator',
   steps: [
+    run('npm install'),
     run('npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --skip-validate-spec --additional-properties=typescriptThreePlus=true,supportsES6=true'),
   ],
   inputs: {
