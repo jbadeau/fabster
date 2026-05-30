@@ -42,7 +42,8 @@ interface ActiveRun {
   emitter: WorkflowEmitter;
   startedAt: number;
   workflowName: string;
-  nodes: { id: string; name: string; kind: string; state: NodeState }[];
+  nodes: { id: string; name: string; kind: string; purpose: string; state: NodeState }[];
+  edges: { id: string; source: string; target: string }[];
   status: 'running' | 'success' | 'failed' | 'gated';
   nodeLogs: Map<string, string[]>;
 }
@@ -51,9 +52,30 @@ interface ActiveRun {
 const activeRuns = new Map<string, ActiveRun>();
 
 export const appRouter = t.router({
-  // List available workflows (placeholder — will scan filesystem)
-  listWorkflows: t.procedure.query(() => {
-    return { workflows: [] as { id: string; name: string; path: string }[] };
+  // List available workflows by scanning known directories
+  listWorkflows: t.procedure.query(async () => {
+    const { readdir } = await import('node:fs/promises');
+    const { existsSync } = await import('node:fs');
+
+    const dirs = ['examples', 'workflows'];
+    const workflows: { id: string; name: string; path: string }[] = [];
+
+    for (const dir of dirs) {
+      if (!existsSync(dir)) continue;
+      const entries = (await readdir(dir, { recursive: true })) as string[];
+      for (const entry of entries) {
+        if (entry.endsWith('/workflow.ts') || entry === 'workflow.ts') {
+          const filePath = path.join(dir, entry);
+          workflows.push({
+            id: filePath,
+            name: path.dirname(filePath).split('/').pop() ?? filePath,
+            path: filePath,
+          });
+        }
+      }
+    }
+
+    return { workflows };
   }),
 
   // List active runs
@@ -65,6 +87,7 @@ export const appRouter = t.router({
         startedAt: run.startedAt,
         status: run.status,
         nodes: run.nodes,
+        edges: run.edges,
       })),
     };
   }),
@@ -81,6 +104,7 @@ export const appRouter = t.router({
         startedAt: run.startedAt,
         status: run.status,
         nodes: run.nodes,
+        edges: run.edges,
       };
     }),
 
@@ -110,10 +134,17 @@ export const appRouter = t.router({
 
       // Extract nodes for initial state
       const nodes = extractNodes(workflow);
+      const edges: { id: string; source: string; target: string }[] = [];
+      for (const n of nodes) {
+        for (const dep of n.dependsOn) {
+          edges.push({ id: `e-${dep}-${n.id}`, source: dep, target: n.id });
+        }
+      }
       const nodeStates = nodes.map((n) => ({
         id: n.id,
         name: n.definition.name,
         kind: n.definition.kind,
+        purpose: n.definition.purpose,
         state: 'pending' as NodeState,
       }));
 
@@ -124,6 +155,7 @@ export const appRouter = t.router({
         startedAt: Date.now(),
         workflowName: workflow.name,
         nodes: nodeStates,
+        edges,
         status: 'running',
         nodeLogs: new Map(),
       };
@@ -156,7 +188,7 @@ export const appRouter = t.router({
         activeRun.status = 'failed';
       });
 
-      return { runId, workflowName: workflow.name, nodes: nodeStates };
+      return { runId, workflowName: workflow.name, nodes: nodeStates, edges };
     }),
 
   // Get logs for a specific node in a run

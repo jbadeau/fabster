@@ -1,7 +1,15 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, Clock, CircleCheck, CircleX, CircleDot, CircleMinus, Loader, PenLine } from 'lucide-react';
+import { Plus, Play, Clock, CircleCheck, CircleX, CircleDot, CircleMinus, Loader, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -45,6 +53,14 @@ function formatDuration(startedAt: number, status: string): string {
 export function WorkflowsPage() {
   const navigate = useNavigate();
   const { data } = trpc.listRuns.useQuery(undefined, { refetchInterval: 3000 });
+  const [showRunDialog, setShowRunDialog] = useState(false);
+  const { data: availableWorkflows } = trpc.listWorkflows.useQuery();
+  const runMutation = trpc.runWorkflow.useMutation({
+    onSuccess: (data) => {
+      setShowRunDialog(false);
+      navigate(`/workflow/${data.runId}`);
+    },
+  });
 
   const runs = data?.runs ?? [];
 
@@ -57,10 +73,16 @@ export function WorkflowsPage() {
             Current and past workflow executions
           </p>
         </div>
-        <Button onClick={() => navigate('/workflow')}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Workflow
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowRunDialog(true)}>
+            <Play className="mr-2 h-4 w-4" />
+            Run Workflow
+          </Button>
+          <Button onClick={() => navigate('/workflow')}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Workflow
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border">
@@ -120,6 +142,36 @@ export function WorkflowsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={showRunDialog} onOpenChange={setShowRunDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Run Workflow</DialogTitle>
+            <DialogDescription>
+              Select a workflow to execute
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-1 max-h-64 overflow-y-auto">
+            {availableWorkflows?.workflows && availableWorkflows.workflows.length > 0 ? (
+              availableWorkflows.workflows.map((wf) => (
+                <button
+                  key={wf.path}
+                  className="flex flex-col items-start gap-0.5 rounded-md px-3 py-2 text-left hover:bg-muted/50 disabled:opacity-50"
+                  disabled={runMutation.isPending}
+                  onClick={() => runMutation.mutate({ workflowPath: wf.path })}
+                >
+                  <span className="text-sm font-medium">{wf.name}</span>
+                  <span className="text-xs text-muted-foreground">{wf.path}</span>
+                </button>
+              ))
+            ) : (
+              <p className="px-3 py-4 text-sm text-muted-foreground text-center">
+                No workflows found
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

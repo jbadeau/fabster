@@ -241,6 +241,83 @@ const initialEdges: Edge[] = [
   { id: 'e-client-implfrontend', source: 'generate-api-client', target: 'implement-frontend' },
 ];
 
+function autoLayoutDAG(
+  serverNodes: { id: string; name: string; kind: string; purpose: string; state: string }[],
+  serverEdges: { id: string; source: string; target: string }[],
+): { nodes: Node[]; edges: Edge[] } {
+  // Build adjacency for topological layering
+  const inDegree = new Map<string, number>();
+  const children = new Map<string, string[]>();
+  for (const n of serverNodes) {
+    inDegree.set(n.id, 0);
+    children.set(n.id, []);
+  }
+  for (const e of serverEdges) {
+    inDegree.set(e.target, (inDegree.get(e.target) ?? 0) + 1);
+    children.get(e.source)?.push(e.target);
+  }
+
+  // Assign layers via BFS (topological order)
+  const layers = new Map<string, number>();
+  const queue = serverNodes.filter(n => (inDegree.get(n.id) ?? 0) === 0).map(n => n.id);
+  for (const id of queue) layers.set(id, 0);
+
+  let i = 0;
+  while (i < queue.length) {
+    const current = queue[i++];
+    const layer = layers.get(current) ?? 0;
+    for (const child of (children.get(current) ?? [])) {
+      const newLayer = Math.max(layers.get(child) ?? 0, layer + 1);
+      layers.set(child, newLayer);
+      if (!queue.includes(child)) queue.push(child);
+    }
+  }
+
+  // Group nodes by layer and position them
+  const layerGroups = new Map<number, string[]>();
+  for (const [id, layer] of layers) {
+    if (!layerGroups.has(layer)) layerGroups.set(layer, []);
+    layerGroups.get(layer)!.push(id);
+  }
+
+  const NODE_WIDTH = 220;
+  const LAYER_GAP = 140;
+  const NODE_GAP = 40;
+
+  const nodeMap = new Map(serverNodes.map(n => [n.id, n]));
+  const nodes: Node[] = [];
+  let orderCounter = 1;
+
+  for (const [layer, ids] of [...layerGroups.entries()].sort((a, b) => a[0] - b[0])) {
+    const totalWidth = ids.length * NODE_WIDTH + (ids.length - 1) * NODE_GAP;
+    const startX = -totalWidth / 2 + NODE_WIDTH / 2;
+
+    ids.forEach((id, idx) => {
+      const sn = nodeMap.get(id)!;
+      nodes.push({
+        id,
+        type: 'taskNode',
+        position: { x: startX + idx * (NODE_WIDTH + NODE_GAP), y: layer * LAYER_GAP },
+        data: {
+          label: sn.name.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          definition: sn.name,
+          type: sn.kind as 'task' | 'command',
+          order: orderCounter++,
+          purpose: sn.purpose,
+        },
+      });
+    });
+  }
+
+  const edges: Edge[] = serverEdges.map(e => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+  }));
+
+  return { nodes, edges };
+}
+
 
 export function WorkflowPage() {
   const { runId } = useParams();
@@ -280,21 +357,32 @@ function ComposeCanvas({ runId }: { runId?: string }) {
 
   const isExecutionMode = Boolean(runStates);
 
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Update nodes/edges when server data arrives (execution mode with DAG from server)
+  useEffect(() => {
+    if (runData?.nodes && runData?.edges) {
+      const layout = autoLayoutDAG(runData.nodes, runData.edges);
+      setNodes(layout.nodes);
+      setEdges(layout.edges);
+    }
+  }, [runData?.nodes?.length, setNodes, setEdges]); // Only re-layout when node count changes
+
   // Apply execution states to nodes
   const nodesWithState = useMemo(() => {
-    if (!runStates) return initialNodes;
-    return initialNodes.map((n) => ({
+    if (!runStates) return nodes;
+    return nodes.map((n) => ({
       ...n,
       data: { ...n.data, status: runStates[n.id] ?? 'pending' },
     }));
-  }, [runStates]);
+  }, [runStates, nodes]);
 
   // Style edges based on target node status
   const edgesWithState = useMemo(() => {
-    if (!runStates) return initialEdges;
-    return initialEdges.map((e) => {
+    if (!runStates) return edges;
+    return edges.map((e) => {
       const targetStatus = runStates[e.target];
-      const sourceStatus = runStates[e.source];
       if (targetStatus === 'running') {
         return { ...e, animated: true };
       }
@@ -303,10 +391,7 @@ function ComposeCanvas({ runId }: { runId?: string }) {
       }
       return e;
     });
-  }, [runStates]);
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(nodesWithState);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(edgesWithState);
+  }, [runStates, edges]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [logsOpen, setLogsOpen] = useState(false);
@@ -319,7 +404,7 @@ function ComposeCanvas({ runId }: { runId?: string }) {
   }, [selectedNodeId, fitView]);
 
 
-  const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
+  const selectedNode = selectedNodeId ? nodesWithState.find((n) => n.id === selectedNodeId) : null;
 
   const { data: logsData } = trpc.getNodeLogs.useQuery(
     { runId: runId!, nodeId: selectedNodeId! },
@@ -377,8 +462,8 @@ function ComposeCanvas({ runId }: { runId?: string }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex-1">
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
+          nodes={nodesWithState}
+          edges={edgesWithState}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -458,7 +543,7 @@ function ComposeCanvas({ runId }: { runId?: string }) {
         open={isAddOpen}
         onOpenChange={setIsAddOpen}
         onAdd={addNode}
-        existingNodes={nodes}
+        existingNodes={nodesWithState}
       />
     </>
   );
