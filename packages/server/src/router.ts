@@ -5,6 +5,7 @@ import type {} from '@trpc/server/unstable-core-do-not-import';
 import { z } from 'zod';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
+import { writeFile, mkdir, readdir, readFile as fsReadFile } from 'node:fs/promises';
 import type { WorkflowDefinition, AgentDefinition } from '@fabster/core';
 import {
   runWorkflow,
@@ -23,6 +24,7 @@ const t = initTRPC.create();
 const workflowEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('node:state'), nodeId: z.string(), state: z.string(), log: z.string().optional() }),
   z.object({ type: z.literal('node:log'), nodeId: z.string(), message: z.string() }),
+  z.object({ type: z.literal('node:agent'), nodeId: z.string(), agentName: z.string() }),
   z.object({ type: z.literal('node:gate'), nodeId: z.string(), gate: z.object({ gate: z.object({ kind: z.string(), required: z.boolean().optional() }), passed: z.boolean(), detail: z.string().optional() }) }),
   z.object({ type: z.literal('node:mr'), nodeId: z.string(), mr: z.string() }),
   z.object({ type: z.literal('node:retry'), nodeId: z.string(), attempt: z.number(), maxAttempts: z.number(), evidence: z.string() }),
@@ -38,11 +40,29 @@ interface WorkflowModule {
   models?: ModelMap;
 }
 
+interface SerializedNode {
+  id: string;
+  name: string;
+  kind: string;
+  purpose: string;
+  state: NodeState;
+  agent?: string;
+  inputs?: { name: string; kind: string; description?: string; value?: string | number | boolean }[];
+  outputs?: { name: string; kind: string; description?: string }[];
+  steps?: string[];
+  requirements?: string[];
+  instructions?: string[];
+  rules?: string[];
+  reasoning?: string;
+  permissions?: { fs?: { read?: string[]; write?: string[] }; tools?: string[]; network?: string[]; secrets?: string[] };
+  gates?: string[];
+}
+
 interface ActiveRun {
   emitter: WorkflowEmitter;
   startedAt: number;
   workflowName: string;
-  nodes: { id: string; name: string; kind: string; purpose: string; state: NodeState }[];
+  nodes: SerializedNode[];
   edges: { id: string; source: string; target: string }[];
   status: 'running' | 'success' | 'failed' | 'gated';
   nodeLogs: Map<string, string[]>;
@@ -50,6 +70,64 @@ interface ActiveRun {
 
 // In-memory store for active runs
 const activeRuns = new Map<string, ActiveRun>();
+
+interface PersistedRun {
+  id: string;
+  workflowName: string;
+  startedAt: number;
+  status: string;
+  nodes: SerializedNode[];
+  edges: { id: string; source: string; target: string }[];
+  nodeLogs: Record<string, string[]>;
+}
+
+async function persistRun(runId: string, run: ActiveRun): Promise<void> {
+  const dir = path.join(process.cwd(), '.fabster', 'runs');
+  await mkdir(dir, { recursive: true });
+  const data: PersistedRun = {
+    id: runId,
+    workflowName: run.workflowName,
+    startedAt: run.startedAt,
+    status: run.status,
+    nodes: run.nodes,
+    edges: run.edges,
+    nodeLogs: Object.fromEntries(run.nodeLogs),
+  };
+  await writeFile(path.join(dir, `${runId}.json`), JSON.stringify(data, null, 2));
+}
+
+async function loadPersistedRuns(): Promise<void> {
+  const dir = path.join(process.cwd(), '.fabster', 'runs');
+  try {
+    const files = await readdir(dir);
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      try {
+        const content = await fsReadFile(path.join(dir, file), 'utf-8');
+        const data = JSON.parse(content) as PersistedRun;
+        // Don't load runs that are still "running" — they can't resume
+        const status = data.status === 'running' ? 'failed' : data.status;
+        const emitter = createWorkflowEmitter();
+        activeRuns.set(data.id, {
+          emitter,
+          startedAt: data.startedAt,
+          workflowName: data.workflowName,
+          nodes: data.nodes,
+          edges: data.edges,
+          status: status as ActiveRun['status'],
+          nodeLogs: new Map(Object.entries(data.nodeLogs)),
+        });
+      } catch {
+        // Skip corrupt files
+      }
+    }
+  } catch {
+    // No runs directory yet
+  }
+}
+
+// Load persisted runs on startup
+loadPersistedRuns().catch(() => {});
 
 export const appRouter = t.router({
   // List available workflows by scanning known directories
@@ -140,13 +218,56 @@ export const appRouter = t.router({
           edges.push({ id: `e-${dep}-${n.id}`, source: dep, target: n.id });
         }
       }
-      const nodeStates = nodes.map((n) => ({
-        id: n.id,
-        name: n.definition.name,
-        kind: n.definition.kind,
-        purpose: n.definition.purpose,
-        state: 'pending' as NodeState,
-      }));
+      const nodeStates: SerializedNode[] = nodes.map((n) => {
+        const def = n.definition;
+        const inputs = def.inputs
+          ? Object.entries(def.inputs).map(([name, desc]) => ({
+              name,
+              kind: (desc as { kind: string }).kind,
+              description: (desc as { description?: string }).description,
+              // Resolve input values from the workflow graph
+              value: n.inputs[name] != null && typeof n.inputs[name] !== 'object'
+                ? n.inputs[name] as string | number | boolean
+                : undefined,
+            }))
+          : undefined;
+        const outputs = def.outputs
+          ? Object.entries(def.outputs).map(([name, desc]) => ({
+              name,
+              kind: (desc as { kind: string }).kind,
+              description: (desc as { description?: string }).description,
+            }))
+          : undefined;
+
+        const base: SerializedNode = {
+          id: n.id,
+          name: def.name,
+          kind: def.kind,
+          purpose: def.purpose,
+          state: 'pending' as NodeState,
+          inputs,
+          outputs,
+          permissions: def.permissions ? {
+            fs: def.permissions.fs ? { read: [...(def.permissions.fs.read ?? [])], write: [...(def.permissions.fs.write ?? [])] } : undefined,
+            tools: def.permissions.tools ? [...def.permissions.tools] : undefined,
+            network: def.permissions.network ? [...def.permissions.network] : undefined,
+            secrets: def.permissions.secrets ? [...def.permissions.secrets] : undefined,
+          } : undefined,
+          gates: def.gates?.map((g) => g.kind),
+        };
+
+        if (def.kind === 'command') {
+          base.steps = def.steps.map((s) => s.script);
+        }
+        if (def.kind === 'task') {
+          base.reasoning = def.reasoning;
+          base.requirements = def.requirements.map((r) => `${r.namespace}: ${JSON.stringify(r.filter)}`);
+          base.instructions = def.instructions ? [...def.instructions] : undefined;
+          base.rules = def.rules ? [...def.rules] : undefined;
+        }
+
+        return base;
+      });
 
       // Create emitter and register the run
       const emitter = createWorkflowEmitter();
@@ -168,6 +289,9 @@ export const appRouter = t.router({
           if (node) {
             node.state = event.state as NodeState;
           }
+          if (event.state === 'complete' || event.state === 'failed') {
+            persistRun(runId, activeRun).catch(() => {});
+          }
         }
         if (event.type === 'node:log') {
           const logs = activeRun.nodeLogs.get(event.nodeId);
@@ -177,8 +301,15 @@ export const appRouter = t.router({
             activeRun.nodeLogs.set(event.nodeId, [event.message]);
           }
         }
+        if (event.type === 'node:agent') {
+          const node = activeRun.nodes.find((n) => n.id === event.nodeId);
+          if (node) {
+            node.agent = event.agentName;
+          }
+        }
         if (event.type === 'workflow:done') {
           activeRun.status = event.status;
+          persistRun(runId, activeRun).catch(() => {});
         }
       });
 

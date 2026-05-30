@@ -99,6 +99,11 @@ export async function runWorkflow(
     let validationGates: GateResult[] = [];
     let reviewGates: GateResult[] = [];
 
+    const log = (message: string) => {
+      logs.push(message);
+      emit?.({ type: 'node:log', nodeId: node.id, message });
+    };
+
     if (hasFailed(node.id)) {
       emit?.({ type: 'node:state', nodeId: node.id, state: 'skipped', log: 'Skipped — dependency failed' });
       nodeResults.set(node.id, {
@@ -117,7 +122,7 @@ export async function runWorkflow(
       if (await branchExists(repoCwd, branch)) {
         const outputs = collectDeclaredOutputs(def, resolvedInputs);
         nodeOutputs.set(node.id, outputs);
-        logs.push(`Branch ${branch} already exists — skipping`);
+        log(`Branch ${branch} already exists — skipping`);
         emit?.({ type: 'node:state', nodeId: node.id, state: 'complete', log: `Branch ${branch} already exists — skipping` });
         nodeResults.set(node.id, {
           id: node.id, definition: def, state: 'complete', branch,
@@ -130,23 +135,20 @@ export async function runWorkflow(
 
       // === EXECUTING ===
       state = retryEvidence ? 'retrying' : 'executing';
-      logs.push(`[${state}] ${def.kind}: ${def.name}`);
       if (emit) {
         emit({ type: 'node:state', nodeId: node.id, state });
-        emit({ type: 'node:log', nodeId: node.id, message: `[${state}] ${def.kind}: ${def.name}` });
       } else {
         console.log(`  ⟳ ${node.id} [${state}] ${def.kind}: ${def.name}`);
       }
+      log(`[${state}] ${def.kind}: ${def.name}`);
 
       const worktree = await createWorktree(repoCwd, workflow.name, node.id, baseBranch);
-      logs.push(`Created worktree: ${worktree.worktreePath} (branch: ${worktree.branch})`);
+      log(`Created worktree: ${worktree.worktreePath} (branch: ${worktree.branch})`);
       const worktreeCwd = worktree.worktreePath;
 
       const tools = def.permissions?.tools ?? [];
       if (tools.length > 0) {
-        const toolLog = `Provisioning tools: ${tools.join(', ')}`;
-        logs.push(toolLog);
-        emit?.({ type: 'node:log', nodeId: node.id, message: toolLog });
+        log(`Provisioning tools: ${tools.join(', ')}`);
         await provisionTools(tools, worktreeCwd);
       }
 
@@ -154,6 +156,10 @@ export async function runWorkflow(
         const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, worktreeCwd, emit ? (msg) => emit({ type: 'node:log', nodeId: node.id, message: msg }) : undefined, retryEvidence);
         logs.push(...execResult.logs);
         nodeOutputs.set(node.id, execResult.outputs);
+
+        if (execResult.resolvedAgent) {
+          emit?.({ type: 'node:agent', nodeId: node.id, agentName: execResult.resolvedAgent });
+        }
 
         if (!execResult.success) {
           state = 'failed';
@@ -178,11 +184,11 @@ export async function runWorkflow(
           } else {
             console.log(`  ? ${node.id} [validating]`);
           }
-          logs.push(`[validating] Running ${validation.length} gate(s)`);
+          log(`[validating] Running ${validation.length} gate(s)`);
           validationGates = await runValidationGates(validation, worktreeCwd);
 
           for (const g of validationGates) {
-            logs.push(`  ${g.passed ? '+' : 'x'} ${g.gate.kind}: ${g.detail}`);
+            log(`  ${g.passed ? '+' : 'x'} ${g.gate.kind}: ${g.detail}`);
             emit?.({ type: 'node:gate', nodeId: node.id, gate: g });
           }
 
@@ -217,7 +223,7 @@ export async function runWorkflow(
             }
 
             state = 'failed';
-            logs.push('[failed] Validation gates did not pass');
+            log('[failed] Validation gates did not pass');
             emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: 'Validation gates did not pass' });
             nodeResults.set(node.id, {
               id: node.id, definition: def, state, branch,
@@ -240,11 +246,9 @@ export async function runWorkflow(
         const commitMessage = `fabster: ${def.name} — ${def.purpose}`;
         const sha = await commitChanges(worktreeCwd, commitMessage);
         if (sha) {
-          logs.push(`[publishing] Committed: ${sha}`);
-          emit?.({ type: 'node:log', nodeId: node.id, message: `[publishing] Committed: ${sha}` });
+          log(`[publishing] Committed: ${sha}`);
         } else {
-          logs.push('[publishing] No changes to commit');
-          emit?.({ type: 'node:log', nodeId: node.id, message: '[publishing] No changes to commit' });
+          log('[publishing] No changes to commit');
         }
 
         try {
@@ -254,29 +258,28 @@ export async function runWorkflow(
           );
           mrUrl = mr ?? undefined;
           if (mrUrl) {
-            logs.push(`[publishing] Created MR: ${mrUrl}`);
+            log(`[publishing] Created MR: ${mrUrl}`);
             emit?.({ type: 'node:mr', nodeId: node.id, mr: mrUrl });
           }
         } catch {
-          logs.push('[publishing] Skipped MR (no remote or gh not available)');
-          emit?.({ type: 'node:log', nodeId: node.id, message: '[publishing] Skipped MR (no remote or gh not available)' });
+          log('[publishing] Skipped MR (no remote or gh not available)');
         }
 
         // === REVIEWING ===
         if (review.length > 0 && mrUrl) {
           state = 'reviewing';
           emit?.({ type: 'node:state', nodeId: node.id, state: 'reviewing' });
-          logs.push(`[reviewing] Checking ${review.length} review gate(s)`);
+          log(`[reviewing] Checking ${review.length} review gate(s)`);
           reviewGates = await checkReviewGates(review, worktreeCwd, mrUrl);
 
           for (const g of reviewGates) {
-            logs.push(`  ${g.passed ? '+' : '?'} ${g.gate.kind}: ${g.detail}`);
+            log(`  ${g.passed ? '+' : '?'} ${g.gate.kind}: ${g.detail}`);
             emit?.({ type: 'node:gate', nodeId: node.id, gate: g });
           }
 
           if (reviewGates.some((g) => !g.passed && g.gate.required !== false)) {
             state = 'gated';
-            logs.push('[gated] Waiting for human approval');
+            log('[gated] Waiting for human approval');
             emit?.({ type: 'node:state', nodeId: node.id, state: 'gated', log: 'Waiting for human approval' });
             nodeResults.set(node.id, {
               id: node.id, definition: def, state, branch, mr: mrUrl,
@@ -296,7 +299,7 @@ export async function runWorkflow(
         } else {
           console.log(`  + ${node.id} [complete] (${Math.round((Date.now() - startTime) / 1000)}s)`);
         }
-        logs.push('[complete]');
+        log('[complete]');
 
         await removeWorktree(repoCwd, worktreeCwd);
 
@@ -307,7 +310,7 @@ export async function runWorkflow(
 
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      logs.push(`ERROR: ${message}`);
+      log(`ERROR: ${message}`);
       state = 'failed';
       emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: message });
     }

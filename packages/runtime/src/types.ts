@@ -24,6 +24,7 @@ export type WorkflowEvent =
   | { type: 'node:state'; nodeId: string; state: NodeState; log?: string }
   | { type: 'node:log'; nodeId: string; message: string }
   | { type: 'node:gate'; nodeId: string; gate: GateResult }
+  | { type: 'node:agent'; nodeId: string; agentName: string }
   | { type: 'node:mr'; nodeId: string; mr: string }
   | { type: 'node:retry'; nodeId: string; attempt: number; maxAttempts: number; evidence: string }
   | { type: 'workflow:done'; status: 'success' | 'failed' | 'gated' };

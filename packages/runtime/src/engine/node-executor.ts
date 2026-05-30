@@ -9,6 +9,7 @@ export interface NodeExecutionResult {
   readonly success: boolean;
   readonly logs: string[];
   readonly outputs: Record<string, string | number | boolean>;
+  readonly resolvedAgent?: string;
 }
 
 export async function executeNode(
@@ -80,6 +81,7 @@ export async function executeNode(
         success: result.success,
         logs,
         outputs,
+        resolvedAgent: agent.name,
       };
     }
 
@@ -96,6 +98,7 @@ export async function executeNode(
       success: result.finishReason === 'stop',
       logs,
       outputs,
+      resolvedAgent: agent.name,
     };
   }
 
