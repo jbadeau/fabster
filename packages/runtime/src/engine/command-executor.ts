@@ -5,11 +5,14 @@ function interpolate(
   template: string,
   inputs: Record<string, string | number | boolean>,
 ): string {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => {
+  // Only replace {key} patterns that match declared inputs.
+  // Leave unknown {WORD} patterns untouched — they may be env var
+  // references like ${CODEAK_NPM_CSA_PUBLIC_REPO} in config files.
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => {
     if (key in inputs) {
       return String(inputs[key]);
     }
-    throw new Error(`Missing input "${key}" for command interpolation`);
+    return match;
   });
 }
 

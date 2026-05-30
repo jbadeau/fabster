@@ -11,7 +11,8 @@ export const runForgeUpgrade = command({
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
     tools: ['node', 'pnpm'],
-    network: ['localhost'],
+    network: ['csa.npm.pkg.sehlat.io', 'registry.npmjs.org'],
+    secrets: ['CODEAK_REPOSITORY_BASIC_AUTH'],
   },
   gates: [successfulBuild()],
 });

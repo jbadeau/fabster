@@ -71,6 +71,15 @@ export async function createWorktree(
   // Create worktree at the branch
   await miseExec(`git worktree add "${worktreeDir}" ${branch}`, repoCwd);
 
+  // Copy gitignored files that are needed in the worktree (e.g., mise.local.toml with env vars)
+  const { existsSync, copyFileSync } = await import('node:fs');
+  for (const file of ['mise.local.toml', '.mise.local.toml']) {
+    const src = path.join(repoCwd, file);
+    if (existsSync(src)) {
+      copyFileSync(src, path.join(worktreeDir, file));
+    }
+  }
+
   return { branch, worktreePath: worktreeDir };
 }
 

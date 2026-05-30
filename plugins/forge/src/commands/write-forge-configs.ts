@@ -17,6 +17,7 @@ export const writeForgeConfigs = command({
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
     tools: ['node', 'pnpm'],
+    network: ['csa.npm.pkg.sehlat.io', 'registry.npmjs.org'],
     secrets: ['CODEAK_REPOSITORY_BASIC_AUTH', 'CODEAK_NPM_CSA_PUBLIC_REPO', 'CODEAK_REPOSITORY_HOST'],
   },
   gates: [],
