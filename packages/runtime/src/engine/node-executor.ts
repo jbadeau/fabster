@@ -37,7 +37,7 @@ export async function executeNode(
       log(`> ${cmd}`);
     }
 
-    const result = await executeCommand(def, resolvedInputs, cwd);
+    const result = await executeCommand(def, resolvedInputs, cwd, onLog);
     if (result.stdout) log(result.stdout);
     if (result.stderr) log(result.stderr);
 

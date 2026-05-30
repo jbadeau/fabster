@@ -15,6 +15,13 @@ export default defineConfig(() => ({
   server: {
     port: 4200,
     host: 'localhost',
+    proxy: {
+      '/trpc': {
+        target: 'http://localhost:3456',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   preview: {
     port: 4200,

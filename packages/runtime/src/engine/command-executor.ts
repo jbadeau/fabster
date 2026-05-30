@@ -17,22 +17,26 @@ export async function executeCommand(
   command: CommandDefinition,
   inputs: Record<string, string | number | boolean>,
   cwd: string,
+  onLog?: (message: string) => void,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const commands = command.steps.map(s => s.script);
+  const log = (msg: string) => {
+    if (onLog) { onLog(msg); } else { console.log(`    ${msg}`); }
+  };
 
   let lastResult = { exitCode: 0, stdout: '', stderr: '' };
 
   for (const cmd of commands) {
     const interpolated = interpolate(cmd, inputs);
-    console.log(`    > ${interpolated}`);
+    log(`> ${interpolated}`);
     lastResult = await miseExec(interpolated, cwd, command.permissions?.tools);
 
     if (lastResult.exitCode !== 0) {
-      console.log(`    x exit ${lastResult.exitCode}`);
-      if (lastResult.stderr) console.log(`    stderr: ${lastResult.stderr.slice(0, 500)}`);
+      log(`x exit ${lastResult.exitCode}`);
+      if (lastResult.stderr) log(`stderr: ${lastResult.stderr.slice(0, 500)}`);
       return lastResult;
     }
-    console.log(`    + done`);
+    log(`+ done`);
   }
 
   return lastResult;

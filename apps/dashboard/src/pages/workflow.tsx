@@ -23,7 +23,7 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Plus, Play, Save, ClipboardList, Terminal as TerminalIcon, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Play, Save, ClipboardList, Terminal as TerminalIcon, X, ChevronDown, ChevronUp, Loader, CircleCheck, CircleX, CircleDot, CircleMinus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -86,12 +86,21 @@ function resolveTemplate(template: string, inputs?: SchemaField[]): string {
 }
 
 const STATUS_BORDER: Record<ExecutionStatus, string> = {
-  pending: 'border-dashed border-border',
-  running: 'border-border border-2 animate-pulse',
-  complete: 'border-border',
-  failed: 'border-border',
-  gated: 'border-border',
-  skipped: 'border-dashed border-border/30',
+  pending: 'border-dashed border-muted-foreground/30',
+  running: 'border-blue-500 border-2 shadow-md shadow-blue-500/20',
+  complete: 'border-green-600 border-2',
+  failed: 'border-red-500 border-2',
+  gated: 'border-yellow-500 border-2',
+  skipped: 'border-dashed border-muted-foreground/20',
+};
+
+const STATUS_ICON: Record<ExecutionStatus, React.ReactNode> = {
+  pending: <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />,
+  running: <Loader className="h-3 w-3 animate-spin text-blue-500" />,
+  complete: <CircleCheck className="h-3 w-3 text-green-600" />,
+  failed: <CircleX className="h-3 w-3 text-red-500" />,
+  gated: <CircleDot className="h-3 w-3 text-yellow-500" />,
+  skipped: <CircleMinus className="h-3 w-3 text-muted-foreground/40" />,
 };
 
 // Custom node component
@@ -108,16 +117,17 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
         </div>
       )}
       <div className="flex items-center gap-2">
+        {data.status && STATUS_ICON[data.status]}
         {isTask ? (
-          <ClipboardList className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-foreground'}`} />
+          <ClipboardList className={`h-3.5 w-3.5 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-foreground'}`} />
         ) : (
-          <TerminalIcon className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-foreground'}`} />
+          <TerminalIcon className={`h-3.5 w-3.5 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-foreground'}`} />
         )}
         <span className="text-xs font-medium">{data.label}</span>
       </div>
-      <div className="ml-6 text-xs text-muted-foreground">{data.definition}</div>
+      <div className="ml-[1.65rem] text-xs text-muted-foreground">{data.definition}</div>
       {isTask && (
-        <div className="mt-1.5 ml-6 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="mt-1.5 ml-[1.65rem] flex items-center gap-1.5 text-xs text-muted-foreground">
           {data.agent && (
             <img src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${data.agent}`} alt={data.agent} className="h-5 w-5" />
           )}
@@ -241,8 +251,25 @@ const initialEdges: Edge[] = [
   { id: 'e-client-implfrontend', source: 'generate-api-client', target: 'implement-frontend' },
 ];
 
+interface ServerNode {
+  id: string;
+  name: string;
+  kind: string;
+  purpose: string;
+  state: string;
+  inputs?: { name: string; kind: string; description?: string; value?: string | number | boolean }[];
+  outputs?: { name: string; kind: string; description?: string }[];
+  steps?: string[];
+  requirements?: string[];
+  instructions?: string[];
+  rules?: string[];
+  reasoning?: string;
+  permissions?: { fs?: { read?: string[]; write?: string[] }; tools?: string[]; network?: string[]; secrets?: string[] };
+  gates?: string[];
+}
+
 function autoLayoutDAG(
-  serverNodes: { id: string; name: string; kind: string; purpose: string; state: string }[],
+  serverNodes: ServerNode[],
   serverEdges: { id: string; source: string; target: string }[],
 ): { nodes: Node[]; edges: Edge[] } {
   // Build adjacency for topological layering
@@ -304,6 +331,22 @@ function autoLayoutDAG(
           type: sn.kind as 'task' | 'command',
           order: orderCounter++,
           purpose: sn.purpose,
+          reasoning: sn.reasoning,
+          run: sn.steps?.join(' && '),
+          inputs: sn.inputs?.map((inp) => ({
+            name: inp.name,
+            type: inp.kind as 'string' | 'number' | 'boolean',
+            description: inp.description ?? '',
+            value: inp.value,
+          })),
+          outputs: sn.outputs?.map((out) => ({
+            name: out.name,
+            type: out.kind as 'string' | 'number' | 'boolean',
+            description: out.description ?? '',
+          })),
+          requirements: sn.requirements,
+          rules: sn.rules ?? sn.gates,
+          permissions: sn.permissions ? { tools: sn.permissions.tools } : undefined,
         },
       });
     });
@@ -383,25 +426,22 @@ function ComposeCanvas({ runId }: { runId?: string }) {
     if (!runStates) return edges;
     return edges.map((e) => {
       const targetStatus = runStates[e.target];
-      if (targetStatus === 'running') {
-        return { ...e, animated: true };
-      }
-      if (targetStatus === 'pending') {
-        return { ...e, style: { opacity: 0.3 } };
+      if (targetStatus === 'pending' || targetStatus === 'skipped') {
+        return { ...e, style: { opacity: 0.2 } };
       }
       return e;
     });
   }, [runStates, edges]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [logsOpen, setLogsOpen] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(!!runId);
   const { fitView } = useReactFlow();
 
-  // Resize canvas when sidebar opens/closes
+  // Fit view on initial load only
   useEffect(() => {
-    const timer = setTimeout(() => fitView({ padding: 0.1 }), 50);
+    const timer = setTimeout(() => fitView({ padding: 0.1 }), 100);
     return () => clearTimeout(timer);
-  }, [selectedNodeId, fitView]);
+  }, [fitView]);
 
 
   const selectedNode = selectedNodeId ? nodesWithState.find((n) => n.id === selectedNodeId) : null;
@@ -425,8 +465,8 @@ function ComposeCanvas({ runId }: { runId?: string }) {
   }, [isExecutionMode]);
 
   const onPaneClick = useCallback(() => {
-    setSelectedNodeId(null);
-  }, []);
+    if (!isExecutionMode) setSelectedNodeId(null);
+  }, [isExecutionMode]);
 
   const updateNodeData = (nodeId: string, data: Partial<NodeData>) => {
     setNodes((nds) =>
@@ -499,21 +539,23 @@ function ComposeCanvas({ runId }: { runId?: string }) {
         </div>
 
         {/* Bottom log panel (under canvas only, not sidebar) */}
-        {isExecutionMode && selectedNode && (
-          <div className={`shrink-0 border-t bg-card flex flex-col ${logsOpen ? 'h-64' : ''}`}>
+        {isExecutionMode && (
+          <div className="shrink-0 border-t bg-card flex flex-col h-64">
             <button
               onClick={() => setLogsOpen((o) => !o)}
               className="flex shrink-0 items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50"
             >
               <div className="flex items-center gap-2">
                 <TerminalIcon className="h-3 w-3" />
-                <span>Logs — {(selectedNode.data as NodeData).label}</span>
+                <span>{selectedNode ? `Logs — ${(selectedNode.data as NodeData).label}` : 'Logs — click a node'}</span>
               </div>
               {logsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
             </button>
             {logsOpen && (
               <div className="flex-1 overflow-y-scroll px-4 py-2 font-mono text-xs border-t">
-                {nodeLogs.length > 0 ? (
+                {!selectedNode ? (
+                  <span className="text-muted-foreground">Click a node to see its logs</span>
+                ) : nodeLogs.length > 0 ? (
                   <div className="flex flex-col gap-0.5">
                     {nodeLogs.map((line, i) => (
                       <span key={i} className={logColor(line)}>{line}</span>
