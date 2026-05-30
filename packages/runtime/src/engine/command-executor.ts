@@ -29,6 +29,7 @@ export async function executeCommand(
 
     if (lastResult.exitCode !== 0) {
       console.log(`    x exit ${lastResult.exitCode}`);
+      if (lastResult.stderr) console.log(`    stderr: ${lastResult.stderr.slice(0, 500)}`);
       return lastResult;
     }
     console.log(`    + done`);

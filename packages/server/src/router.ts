@@ -3,7 +3,20 @@ import { observable } from '@trpc/server/observable';
 // Force TS to include the internal tRPC type in declaration emit
 import type {} from '@trpc/server/unstable-core-do-not-import';
 import { z } from 'zod';
-import type { WorkflowEvent, WorkflowEmitter } from '@fabster/runtime';
+import { pathToFileURL } from 'node:url';
+import path from 'node:path';
+import type { WorkflowDefinition, AgentDefinition } from '@fabster/core';
+import {
+  runWorkflow,
+  createWorkflowEmitter,
+  extractNodes,
+} from '@fabster/runtime';
+import type {
+  WorkflowEvent,
+  WorkflowEmitter,
+  ModelMap,
+  NodeState,
+} from '@fabster/runtime';
 
 const t = initTRPC.create();
 
@@ -12,13 +25,29 @@ const workflowEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('node:log'), nodeId: z.string(), message: z.string() }),
   z.object({ type: z.literal('node:gate'), nodeId: z.string(), gate: z.object({ gate: z.object({ kind: z.string(), required: z.boolean().optional() }), passed: z.boolean(), detail: z.string().optional() }) }),
   z.object({ type: z.literal('node:mr'), nodeId: z.string(), mr: z.string() }),
+  z.object({ type: z.literal('node:retry'), nodeId: z.string(), attempt: z.number(), maxAttempts: z.number(), evidence: z.string() }),
   z.object({ type: z.literal('workflow:done'), status: z.enum(['success', 'failed', 'gated']) }),
 ]);
 
 export type WorkflowEventOutput = z.infer<typeof workflowEventSchema>;
 
+interface WorkflowModule {
+  default?: WorkflowDefinition;
+  workflow?: WorkflowDefinition;
+  agents?: readonly AgentDefinition[];
+  models?: ModelMap;
+}
+
+interface ActiveRun {
+  emitter: WorkflowEmitter;
+  startedAt: number;
+  workflowName: string;
+  nodes: { id: string; name: string; kind: string; state: NodeState }[];
+  status: 'running' | 'success' | 'failed' | 'gated';
+}
+
 // In-memory store for active runs
-const activeRuns = new Map<string, { emitter: WorkflowEmitter; startedAt: number }>();
+const activeRuns = new Map<string, ActiveRun>();
 
 export const appRouter = t.router({
   // List available workflows (placeholder — will scan filesystem)
@@ -31,10 +60,28 @@ export const appRouter = t.router({
     return {
       runs: [...activeRuns.entries()].map(([id, run]) => ({
         id,
+        workflowName: run.workflowName,
         startedAt: run.startedAt,
+        status: run.status,
+        nodes: run.nodes,
       })),
     };
   }),
+
+  // Get a single run's state
+  getRun: t.procedure
+    .input(z.object({ runId: z.string() }))
+    .query(({ input }) => {
+      const run = activeRuns.get(input.runId);
+      if (!run) return null;
+      return {
+        id: input.runId,
+        workflowName: run.workflowName,
+        startedAt: run.startedAt,
+        status: run.status,
+        nodes: run.nodes,
+      };
+    }),
 
   // Trigger a workflow run
   runWorkflow: t.procedure
@@ -43,8 +90,63 @@ export const appRouter = t.router({
     }))
     .mutation(async ({ input }) => {
       const runId = `run_${Date.now()}`;
-      // Workflow loading will be handled when we wire up the daemon
-      return { runId, status: 'started' as const };
+      const absolutePath = path.resolve(input.workflowPath);
+      const fileUrl = pathToFileURL(absolutePath).href;
+
+      // Dynamically import the workflow module
+      const mod = (await import(fileUrl)) as WorkflowModule;
+
+      const workflow = mod.default ?? mod.workflow;
+      if (!workflow) {
+        throw new Error('Workflow file must export a WorkflowDefinition as default or named "workflow"');
+      }
+
+      const agents = mod.agents ?? [];
+      const models = mod.models;
+      if (!models) {
+        throw new Error('Workflow file must export a "models" object with { low, medium, high } LanguageModel entries');
+      }
+
+      // Extract nodes for initial state
+      const nodes = extractNodes(workflow);
+      const nodeStates = nodes.map((n) => ({
+        id: n.id,
+        name: n.definition.name,
+        kind: n.definition.kind,
+        state: 'pending' as NodeState,
+      }));
+
+      // Create emitter and register the run
+      const emitter = createWorkflowEmitter();
+      const activeRun: ActiveRun = {
+        emitter,
+        startedAt: Date.now(),
+        workflowName: workflow.name,
+        nodes: nodeStates,
+        status: 'running',
+      };
+      activeRuns.set(runId, activeRun);
+
+      // Update node states as events come in
+      emitter.on('progress', (event: WorkflowEvent) => {
+        if (event.type === 'node:state') {
+          const node = activeRun.nodes.find((n) => n.id === event.nodeId);
+          if (node) {
+            node.state = event.state as NodeState;
+          }
+        }
+        if (event.type === 'workflow:done') {
+          activeRun.status = event.status;
+        }
+      });
+
+      // Fire and forget — the subscription streams events to the client
+      runWorkflow(workflow, { agents, models, emitter }).catch((err) => {
+        console.error(`Workflow run ${runId} error:`, err);
+        activeRun.status = 'failed';
+      });
+
+      return { runId, workflowName: workflow.name, nodes: nodeStates };
     }),
 
   // Cancel a run
