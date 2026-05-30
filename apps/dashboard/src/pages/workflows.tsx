@@ -10,18 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { trpc } from '@/lib/trpc';
 
 type RunStatus = 'draft' | 'running' | 'success' | 'failed' | 'gated' | 'cancelled';
-
-interface Workflow {
-  id: string;
-  name: string;
-  status: RunStatus;
-  nodes: { total: number; completed: number };
-  duration: string;
-  startedAt: string;
-  mrs: number;
-}
 
 const STATUS_CONFIG: Record<RunStatus, { icon: React.ReactNode; label: string; variant: 'default' | 'secondary' | 'outline' }> = {
   draft: { icon: <PenLine className="h-3 w-3" />, label: 'Draft', variant: 'outline' },
@@ -32,15 +23,30 @@ const STATUS_CONFIG: Record<RunStatus, { icon: React.ReactNode; label: string; v
   cancelled: { icon: <CircleMinus className="h-3 w-3" />, label: 'Cancelled', variant: 'secondary' },
 };
 
-const MOCK_WORKFLOWS: Workflow[] = [
-  { id: 'draft_1', name: 'create-todomvc', status: 'draft', nodes: { total: 10, completed: 0 }, duration: '-', startedAt: 'just now', mrs: 0 },
-  { id: 'run_1715961600', name: 'create-todomvc', status: 'running', nodes: { total: 10, completed: 3 }, duration: '1:47', startedAt: '2 min ago', mrs: 3 },
-  { id: 'run_1715954400', name: 'create-todomvc', status: 'success', nodes: { total: 10, completed: 10 }, duration: '4:32', startedAt: '1 hour ago', mrs: 10 },
-  { id: 'run_1715947200', name: 'create-todomvc', status: 'failed', nodes: { total: 10, completed: 6 }, duration: '3:21', startedAt: '3 hours ago', mrs: 6 },
-];
+function formatRelativeTime(timestamp: number): string {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+function formatDuration(startedAt: number, status: string): string {
+  const end = status === 'running' ? Date.now() : Date.now(); // TODO: track endedAt on server
+  const seconds = Math.floor((end - startedAt) / 1000);
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
 
 export function WorkflowsPage() {
   const navigate = useNavigate();
+  const { data } = trpc.listRuns.useQuery(undefined, { refetchInterval: 3000 });
+
+  const runs = data?.runs ?? [];
 
   return (
     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
@@ -70,11 +76,17 @@ export function WorkflowsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {MOCK_WORKFLOWS.map((wf) => {
-              const status = STATUS_CONFIG[wf.status];
+            {runs.map((run) => {
+              const status = STATUS_CONFIG[run.status as RunStatus] ?? STATUS_CONFIG.running;
+              const total = run.nodes.length;
+              const completed = run.nodes.filter((n) => n.state === 'complete').length;
+              const duration = formatDuration(run.startedAt, run.status);
+              const startedAt = formatRelativeTime(run.startedAt);
+              const mrs = completed;
+
               return (
-                <TableRow key={wf.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/workflow/${wf.id}`)}>
-                  <TableCell className="font-medium">{wf.name}</TableCell>
+                <TableRow key={run.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/workflow/${run.id}`)}>
+                  <TableCell className="font-medium">{run.workflowName}</TableCell>
                   <TableCell>
                     <Badge variant={status.variant} className="gap-1">
                       {status.icon}
@@ -86,22 +98,22 @@ export function WorkflowsPage() {
                       <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                         <div
                           className="h-full rounded-full bg-foreground"
-                          style={{ width: `${(wf.nodes.completed / wf.nodes.total) * 100}%` }}
+                          style={{ width: `${total > 0 ? (completed / total) * 100 : 0}%` }}
                         />
                       </div>
                       <span className="text-xs text-muted-foreground tabular-nums">
-                        {wf.nodes.completed}/{wf.nodes.total}
+                        {completed}/{total}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1 text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      <span className="tabular-nums">{wf.duration}</span>
+                      <span className="tabular-nums">{duration}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{wf.mrs}</TableCell>
-                  <TableCell className="text-right text-sm text-muted-foreground">{wf.startedAt}</TableCell>
+                  <TableCell className="text-right tabular-nums">{mrs}</TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">{startedAt}</TableCell>
                 </TableRow>
               );
             })}

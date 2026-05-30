@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router';
+import { trpc } from '@/lib/trpc';
 import {
   ReactFlow,
   Controls,
@@ -240,113 +241,6 @@ const initialEdges: Edge[] = [
   { id: 'e-client-implfrontend', source: 'generate-api-client', target: 'implement-frontend' },
 ];
 
-// Mock execution states for runs
-// Mock execution states — each matches the parallelized DAG
-const MOCK_RUN_STATES: Record<string, Record<string, ExecutionStatus>> = {
-  // Running: linear execution through DAG — one node at a time
-  run_1715961600: {
-    'init-workspace': 'complete',
-    'add-react': 'complete',
-    'add-node': 'complete',
-    'generate-frontend': 'complete',
-    'write-openapi-spec': 'running',
-    'generate-backend': 'pending',
-    'generate-client-lib': 'pending',
-    'generate-api-client': 'pending',
-    'implement-backend': 'pending',
-    'implement-frontend': 'pending',
-  },
-  // Success: all nodes complete
-  run_1715954400: {
-    'init-workspace': 'complete',
-    'add-react': 'complete',
-    'add-node': 'complete',
-    'generate-frontend': 'complete',
-    'write-openapi-spec': 'complete',
-    'generate-backend': 'complete',
-    'generate-client-lib': 'complete',
-    'generate-api-client': 'complete',
-    'implement-backend': 'complete',
-    'implement-frontend': 'complete',
-  },
-  // Failed: api-client generation failed, downstream skipped
-  run_1715947200: {
-    'init-workspace': 'complete',
-    'add-react': 'complete',
-    'add-node': 'complete',
-    'generate-frontend': 'complete',
-    'write-openapi-spec': 'complete',
-    'generate-backend': 'complete',
-    'generate-client-lib': 'complete',
-    'generate-api-client': 'failed',
-    'implement-backend': 'complete',
-    'implement-frontend': 'skipped',
-  },
-};
-
-// Mock logs for nodes that have executed
-const MOCK_NODE_LOGS: Record<string, string[]> = {
-  'init-workspace': ['> npx create-nx-workspace todomvc --preset=apps', '[complete] Workspace created'],
-  'add-react': ['> npx nx add @nx/react', '[complete] Plugin added'],
-  'add-node': ['> npx nx add @nx/node', '[complete] Plugin added'],
-  'generate-frontend': ['> npx nx g @nx/react:app web --directory=apps/web', '[complete] App generated'],
-  'write-openapi-spec': [
-    '[text] Analyzing requirements for Todo API...',
-    '[text] Designing OpenAPI 3.0 specification',
-    '[tool] writeFile /repo/packages/api-spec/project.json',
-    '[text] Creating project.json with name: api-spec, sourceRoot: packages/api-spec',
-    '[tool] writeFile /repo/packages/api-spec/todo.openapi.yaml',
-    '[text] Defining Todo schema: id (string), title (string), completed (boolean), createdAt (string)',
-    '[text] Adding GET /todos endpoint with pagination parameters',
-    '[text] Adding POST /todos endpoint with request body validation',
-    '[text] Adding PUT /todos/{id} endpoint for updates',
-    '[text] Adding DELETE /todos/{id} endpoint',
-    '[text] Adding error responses: 400, 404, 500',
-    '[text] Adding components/schemas for Todo, CreateTodoRequest, UpdateTodoRequest',
-    '[tool] readFile /repo/packages/api-spec/todo.openapi.yaml',
-    '[text] Validating spec structure... all paths have required schema keys',
-    '[text] Checking response definitions... valid',
-    '[text] Verifying component references... all $ref paths resolve',
-    '[done] Agent finished — wrote 2 files',
-  ],
-  'generate-backend': ['> npx nx g @nx/node:app api --directory=apps/api', '[complete] App generated'],
-  'generate-client-lib': ['> npx nx g @nx/js:library api-client --directory=packages/api-client', '[complete] Library generated'],
-  'generate-api-client': ['> npx @openapitools/openapi-generator-cli generate -i packages/api-spec/todo.openapi.yaml -g typescript-fetch -o packages/api-client/src/generated', 'ERROR: Schema validation failed — missing required field "schema" in response definition'],
-  'implement-backend': [
-    '[text] Reading API spec from /repo/packages/api-spec/todo.openapi.yaml',
-    '[text] Analyzing endpoints: 4 routes, 1 schema, CRUD operations',
-    '[tool] writeFile /repo/apps/api/src/types.ts',
-    '[text] Created Todo interface matching OpenAPI schema',
-    '[tool] writeFile /repo/apps/api/src/routes/todos.ts',
-    '[text] Implementing GET /todos — returns all todos from in-memory array',
-    '[text] Implementing POST /todos — generates UUID, validates body, returns 201',
-    '[text] Implementing PUT /todos/{id} — finds by ID, merges updates, returns 200 or 404',
-    '[text] Implementing DELETE /todos/{id} — removes from array, returns 204 or 404',
-    '[tool] writeFile /repo/apps/api/src/main.ts',
-    '[text] Express server with CORS, JSON body parser, listening on port 3000',
-    '[text] Registered routes: /todos (GET, POST), /todos/:id (PUT, DELETE)',
-    '> npx nx build api',
-    '[text] Build successful — 0 errors, 0 warnings',
-    '[done] Agent finished — wrote 3 files',
-  ],
-  'implement-frontend': [
-    '[text] Exploring /repo/apps/web/src/ project structure',
-    '[tool] listDirectory /repo/apps/web/src/app/',
-    '[tool] writeFile /repo/apps/web/src/app/use-todos.ts',
-    '[text] Custom hook: fetches todos from http://localhost:3000/todos',
-    '[text] Implements create, toggle, delete with optimistic updates',
-    '[tool] writeFile /repo/apps/web/src/app/todo-input.tsx',
-    '[text] Input component with form submit handler',
-    '[tool] writeFile /repo/apps/web/src/app/todo-item.tsx',
-    '[text] Todo item with checkbox toggle and delete button',
-    '[tool] writeFile /repo/apps/web/src/app/app.tsx',
-    '[text] Main App component composing TodoInput + TodoItem list',
-    '[text] Shows remaining count, filters by completion status',
-    '> npx nx build web',
-    '[text] Build successful — 0 errors, 0 warnings',
-    '[done] Agent finished — wrote 4 files',
-  ],
-};
 
 export function WorkflowPage() {
   const { runId } = useParams();
@@ -358,7 +252,32 @@ export function WorkflowPage() {
 }
 
 function ComposeCanvas({ runId }: { runId?: string }) {
-  const runStates = runId ? MOCK_RUN_STATES[runId] : undefined;
+  const { data: runData } = trpc.getRun.useQuery(
+    { runId: runId! },
+    { enabled: !!runId, refetchInterval: 2000 },
+  );
+
+  const runStates = useMemo(() => {
+    if (!runData?.nodes) return undefined;
+    const states: Record<string, ExecutionStatus> = {};
+    for (const n of runData.nodes) {
+      const stateMap: Record<string, ExecutionStatus> = {
+        'pending': 'pending',
+        'executing': 'running',
+        'validating': 'running',
+        'publishing': 'running',
+        'reviewing': 'running',
+        'retrying': 'running',
+        'complete': 'complete',
+        'failed': 'failed',
+        'gated': 'gated',
+        'skipped': 'skipped',
+      };
+      states[n.id] = stateMap[n.state] ?? 'pending';
+    }
+    return states;
+  }, [runData]);
+
   const isExecutionMode = Boolean(runStates);
 
   // Apply execution states to nodes
@@ -401,6 +320,12 @@ function ComposeCanvas({ runId }: { runId?: string }) {
 
 
   const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
+
+  const { data: logsData } = trpc.getNodeLogs.useQuery(
+    { runId: runId!, nodeId: selectedNodeId! },
+    { enabled: !!runId && !!selectedNodeId, refetchInterval: 2000 },
+  );
+  const nodeLogs = logsData?.logs ?? [];
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -503,9 +428,9 @@ function ComposeCanvas({ runId }: { runId?: string }) {
             </button>
             {logsOpen && (
               <div className="flex-1 overflow-y-scroll px-4 py-2 font-mono text-xs border-t">
-                {(MOCK_NODE_LOGS[selectedNode.id] ?? []).length > 0 ? (
+                {nodeLogs.length > 0 ? (
                   <div className="flex flex-col gap-0.5">
-                    {(MOCK_NODE_LOGS[selectedNode.id] ?? []).map((line, i) => (
+                    {nodeLogs.map((line, i) => (
                       <span key={i} className={logColor(line)}>{line}</span>
                     ))}
                   </div>

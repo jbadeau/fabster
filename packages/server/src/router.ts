@@ -44,6 +44,7 @@ interface ActiveRun {
   workflowName: string;
   nodes: { id: string; name: string; kind: string; state: NodeState }[];
   status: 'running' | 'success' | 'failed' | 'gated';
+  nodeLogs: Map<string, string[]>;
 }
 
 // In-memory store for active runs
@@ -124,6 +125,7 @@ export const appRouter = t.router({
         workflowName: workflow.name,
         nodes: nodeStates,
         status: 'running',
+        nodeLogs: new Map(),
       };
       activeRuns.set(runId, activeRun);
 
@@ -133,6 +135,14 @@ export const appRouter = t.router({
           const node = activeRun.nodes.find((n) => n.id === event.nodeId);
           if (node) {
             node.state = event.state as NodeState;
+          }
+        }
+        if (event.type === 'node:log') {
+          const logs = activeRun.nodeLogs.get(event.nodeId);
+          if (logs) {
+            logs.push(event.message);
+          } else {
+            activeRun.nodeLogs.set(event.nodeId, [event.message]);
           }
         }
         if (event.type === 'workflow:done') {
@@ -147,6 +157,15 @@ export const appRouter = t.router({
       });
 
       return { runId, workflowName: workflow.name, nodes: nodeStates };
+    }),
+
+  // Get logs for a specific node in a run
+  getNodeLogs: t.procedure
+    .input(z.object({ runId: z.string(), nodeId: z.string() }))
+    .query(({ input }) => {
+      const run = activeRuns.get(input.runId);
+      if (!run) return { logs: [] };
+      return { logs: run.nodeLogs.get(input.nodeId) ?? [] };
     }),
 
   // Cancel a run
