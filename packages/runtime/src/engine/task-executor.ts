@@ -54,7 +54,7 @@ export async function executeTask(
     model,
     tools,
     toolChoice: 'required',
-    system: agentDef.instructions,
+    system: [agentDef.backstory, `\nYour role: ${agentDef.role}`, `Your goal: ${agentDef.goal}`].join('\n'),
     prompt,
     stopWhen: stepCountIs(10),
     onStepFinish: ({ toolCalls, text, finishReason }) => {

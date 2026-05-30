@@ -21,7 +21,10 @@ function buildPrompt(
     .join('\n');
 
   return [
-    agent.instructions,
+    agent.backstory,
+    `Your role: ${agent.role}`,
+    `Your goal: ${agent.goal}`,
+    '',
     `You are executing a Fabster workflow task.`,
     '',
     `## Task`,

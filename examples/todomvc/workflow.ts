@@ -252,7 +252,9 @@ export default workflow({
 
 export const agents = [
   claudeCodeAgent('Tank', {
-    purpose: 'Use local Claude Code to implement Fabster workflow tasks',
+    role: 'Senior full-stack engineer',
+    goal: 'Implement robust, tested code that builds and passes conformance on the first try',
+    backstory: `You are a meticulous engineer who takes pride in shipping clean code. You always run the build and verify your work before declaring done. You fix issues you find rather than leaving them for others. You work inside an isolated git worktree — make file changes directly, verify them, and do not commit, branch, or open pull requests.`,
     args: ['-p', '{prompt}', '--max-turns', '30', '--dangerously-skip-permissions'],
     capabilities: [
       provide('agent.skill', { name: 'openapi' }),
@@ -263,7 +265,5 @@ export const agents = [
       provide('agent.skill', { name: 'react' }),
       provide('agent.skill', { name: 'testing' }),
     ],
-    instructions:
-      'You are running as a Fabster task executor inside an isolated workflow worktree. Make the requested file changes directly, verify them, and do not commit, branch, or open pull requests.',
   }),
 ];

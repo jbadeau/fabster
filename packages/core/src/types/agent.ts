@@ -4,9 +4,12 @@ import type { Capability } from './capability.js';
 export interface NativeAgentDefinition<TOOLS extends ToolSet = ToolSet> {
   readonly kind: 'agent';
   readonly name: string;
-  readonly purpose: string;
+  readonly role: string;
+  readonly goal: string;
+  readonly backstory: string;
   readonly capabilities: readonly Capability[];
-  readonly instructions: string;
+  readonly memory?: boolean;
+  readonly allowDelegation?: boolean;
   readonly tools: TOOLS;
 }
 
@@ -20,9 +23,12 @@ export interface CommandAgentAdapter {
 export interface ExternalAgentDefinition {
   readonly kind: 'external-agent';
   readonly name: string;
-  readonly purpose: string;
+  readonly role: string;
+  readonly goal: string;
+  readonly backstory: string;
   readonly capabilities: readonly Capability[];
-  readonly instructions?: string;
+  readonly memory?: boolean;
+  readonly allowDelegation?: boolean;
   readonly adapter: CommandAgentAdapter;
 }
 

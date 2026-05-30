@@ -7,9 +7,12 @@ import type {
 import type { Capability } from '../types/capability.js';
 
 interface AgentConfig<TOOLS extends ToolSet> {
-  readonly purpose: string;
+  readonly role: string;
+  readonly goal: string;
+  readonly backstory: string;
   readonly capabilities: readonly Capability[];
-  readonly instructions: string;
+  readonly memory?: boolean;
+  readonly allowDelegation?: boolean;
   readonly tools: TOOLS;
 }
 
@@ -25,9 +28,12 @@ export function agent<TOOLS extends ToolSet>(
 }
 
 interface ExternalAgentConfig {
-  readonly purpose: string;
+  readonly role: string;
+  readonly goal: string;
+  readonly backstory: string;
   readonly capabilities: readonly Capability[];
-  readonly instructions?: string;
+  readonly memory?: boolean;
+  readonly allowDelegation?: boolean;
   readonly adapter: CommandAgentAdapter;
 }
 

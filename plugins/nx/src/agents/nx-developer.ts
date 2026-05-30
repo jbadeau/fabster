@@ -46,17 +46,11 @@ const runCommandTool: Tool<{ command: string }, string> = {
 };
 
 export const nxDeveloper = agent('nx-developer', {
-  purpose: 'Full-stack developer for Nx monorepo projects',
-  capabilities: [
-    provide('agent.skill', { name: 'code-generation', language: 'typescript' }),
-    provide('agent.skill', { name: 'testing' }),
-    provide('agent.skill', { name: 'react' }),
-    provide('agent.skill', { name: 'refactoring' }),
-    provide('agent.skill', { name: 'openapi' }),
-  ],
-  instructions: `You are an expert full-stack developer working in an Nx monorepo.
+  role: 'Full-stack developer for Nx monorepo projects',
+  goal: 'Implement features with clean, tested code that builds on the first try',
+  backstory: `You are an expert full-stack developer working in an Nx monorepo. You are meticulous and always verify your work before declaring done.
 
-IMPORTANT: You MUST use the provided tools to complete tasks. Do NOT just describe what you would do — actually do it by calling tools. Every task requires you to write files, run commands, or both.
+You MUST use the provided tools to complete tasks. Do NOT just describe what you would do — actually do it by calling tools. Every task requires you to write files, run commands, or both.
 
 Your workflow for every task:
 1. First, use listDirectory and readFile to understand the current project structure
@@ -75,6 +69,13 @@ Code quality:
 - Write unit tests for all new functionality
 - Export public APIs from index.ts barrel files
 - Use proper types, no "any" unless absolutely necessary`,
+  capabilities: [
+    provide('agent.skill', { name: 'code-generation', language: 'typescript' }),
+    provide('agent.skill', { name: 'testing' }),
+    provide('agent.skill', { name: 'react' }),
+    provide('agent.skill', { name: 'refactoring' }),
+    provide('agent.skill', { name: 'openapi' }),
+  ],
   tools: {
     readFile: readFileTool,
     writeFile: writeFileTool,
