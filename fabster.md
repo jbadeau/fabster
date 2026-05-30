@@ -132,9 +132,10 @@ const implementComponent = task({
     'Use functional components with hooks',
   ],
 
-  // Expected properties of the output
+  // Conformance rules — structural/architectural constraints
   rules: [
     'Co-locate test files next to source files',
+    'No direct imports from internal package paths',
   ],
 
   // Data flowing in and out
@@ -158,8 +159,8 @@ const implementComponent = task({
   // How to sandbox execution
   sandbox: 'bubblewrap',
 
-  // Quality checks
-  gates: [successfulBuild(), humanApproved()],
+  // Operational checkpoints
+  gates: [buildPasses(), testsPass(), humanApproved()],
 });
 ```
 
@@ -168,13 +169,13 @@ A task definition is a complete description of a unit of work:
 - **Name and purpose** — what it's called and what it does
 - **Requirements** — the skills needed, used to match an agent
 - **Instructions** — guidance for the worker. These shape the implementation but do not, by themselves, prove correctness
-- **Rules** — expected properties of the output. Some rules can be checked automatically, such as "component must have a corresponding test file." Others may become review checklist items until a verifier exists
+- **Rules** — conformance checks on code structure and architecture, like Nx conformance rules. "No circular dependencies." "Tests must be co-located." Run against the code to produce pass/fail with specific violations
 - **Inputs and outputs** — typed data flowing in and out, chainable across nodes
 - **Mounts** — which workspace resources the task needs access to
 - **Services** — optional external integrations the task depends on
 - **Permissions** — filesystem access and toolchain constraints
 - **Sandbox** — the isolation level for execution
-- **Gates** — executable pass/fail checks that decide whether the node can advance
+- **Gates** — operational checkpoints: build passes, tests pass, human approved
 
 Both commands and tasks declare **inputs** and **outputs**. Outputs from one node can be chained as inputs to the next — the execution engine wires them together. The data flows through the graph without manual plumbing.
 
@@ -345,25 +346,24 @@ A future speculative mode could allow downstream nodes to run after validation g
 Fabster separates three concepts that are easy to blur:
 
 - **Instructions** shape how the worker approaches the task
-- **Rules** describe expected properties of the output
-- **Gates** are executable pass/fail checks that decide whether the node can advance
+- **Rules** are conformance checks on the code structure and architecture
+- **Gates** are operational checkpoints that decide whether the node can advance
 
-Instructions can be subjective or stylistic: "prefer functional components" or "keep the implementation simple." Rules should be more concrete: "component has a corresponding test file" or "no inline styles." Gates are the actual blockers: build, lint, format, tests, security scans, or human approval.
+Instructions can be subjective or stylistic: "prefer functional components" or "keep the implementation simple."
 
-This separation keeps the system honest. A worker can follow instructions and satisfy rules, but a node is not complete until its gates pass.
+Rules are like [Nx conformance rules](https://nx.dev/docs/reference/conformance/create-conformance-rule) — they enforce structural and architectural constraints on the output. "No circular dependencies between packages." "Components must have a co-located test file." "No direct imports from internal package paths." "API routes must validate input with a schema."
 
-**Validation gates** run automatically after execution:
+Rules serve double duty. During execution, the worker sees them as constraints — they're included in the prompt so the agent can satisfy them while working. After execution, the framework runs the same rules as conformance checks to verify the output. The worker gets a chance to do it right the first time. The framework doesn't take their word for it.
 
-- `successfulBuild()` — does it compile?
-- `linted()` — does it pass linting?
-- `formatted()` — is the code formatted?
+Gates are coarser operational checks:
+
+- `buildPasses()` — does the code compile?
 - `testsPass()` — do the tests pass?
+- `humanApproved()` — has a reviewer approved the merge request?
 
-**Review gates** require human action:
+Rules check the *structure* of what was built. Gates check *whether it works* and *whether a human agrees*. A node can satisfy all its rules (no circular deps, tests co-located) but still fail a gate (build broken, human requests changes).
 
-- `humanApproved()` — the merge request must be approved by a reviewer before downstream work continues
-
-Gates work hand-in-hand with rules. An agent or human can declare they're done, but the gates don't take their word for it — they check the evidence. Build logs, test reports, security scan results — gates look at concrete artifacts, not self-reported status. Completion is claimed by the worker; progress is allowed by the system.
+This separation keeps the system honest. Instructions guide the worker. Rules constrain the output and are verified by the framework. Gates block progress until the build is green and humans approve.
 
 When a gate fails, the node doesn't just stop — it enters a **fix loop**. The gate failure and its evidence (build log, test report, scan result) are fed back to the worker, who gets a chance to fix the issue and resubmit. This cycle repeats up to a configurable limit. If the worker can't satisfy the gates after repeated attempts, *then* the node fails and downstream work is skipped.
 

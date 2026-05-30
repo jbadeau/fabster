@@ -513,9 +513,9 @@ function ComposeCanvas({ runId }: { runId?: string }) {
 
   return (
     <>
-    <div className="flex flex-1 overflow-hidden">
-      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-        <div className="flex-1 min-h-0">
+    <div className="flex h-[calc(100vh-4rem)]">
+      <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex-1 min-h-0 relative">
         <ReactFlow
           nodes={nodesWithState}
           edges={edgesWithState}
@@ -619,7 +619,7 @@ function PropertiesPanel({
   const isTask = data.type === 'task';
 
   return (
-    <div className="w-[20%] min-w-[280px] shrink-0 border-l overflow-y-auto bg-card">
+    <div className="w-[20%] min-w-[280px] shrink-0 border-l overflow-y-auto bg-card h-full">
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           {isTask ? (

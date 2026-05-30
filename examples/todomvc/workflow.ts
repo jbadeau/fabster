@@ -251,7 +251,7 @@ export default workflow({
 });
 
 export const agents = [
-  claudeCodeAgent('claude-code', {
+  claudeCodeAgent('Tank', {
     purpose: 'Use local Claude Code to implement Fabster workflow tasks',
     args: ['-p', '{prompt}', '--max-turns', '30', '--dangerously-skip-permissions'],
     capabilities: [
