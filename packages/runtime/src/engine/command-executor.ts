@@ -29,7 +29,7 @@ export async function executeCommand(
   for (const cmd of commands) {
     const interpolated = interpolate(cmd, inputs);
     log(`> ${interpolated}`);
-    lastResult = await miseExec(interpolated, cwd, command.permissions?.tools, command.permissions);
+    lastResult = await miseExec(interpolated, cwd, command.permissions?.tools);
 
     if (lastResult.exitCode !== 0) {
       log(`x exit ${lastResult.exitCode}`);

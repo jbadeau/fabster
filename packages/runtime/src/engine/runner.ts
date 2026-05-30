@@ -12,6 +12,7 @@ import {
 } from '../git/branch.js';
 import { createMR } from '../git/mr.js';
 import { splitGates, runValidationGates, checkReviewGates } from '../gates/gate-checker.js';
+import { enterSandbox, exitSandbox } from './sandbox.js';
 
 function resolveInputs(
   inputs: Record<string, InputValue>,
@@ -153,6 +154,10 @@ export async function runWorkflow(
       }
 
       try {
+        // Enter sandbox — all child processes spawned during executeNode
+        // will be wrapped with nono using the node's declared permissions
+        await enterSandbox(def.permissions);
+
         const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, worktreeCwd, emit ? (msg) => emit({ type: 'node:log', nodeId: node.id, message: msg }) : undefined, retryEvidence);
         logs.push(...execResult.logs);
         nodeOutputs.set(node.id, execResult.outputs);
@@ -301,9 +306,11 @@ export async function runWorkflow(
         }
         log('[complete]');
 
+        exitSandbox();
         await removeWorktree(repoCwd, worktreeCwd);
 
       } catch (err) {
+        exitSandbox();
         await removeWorktree(repoCwd, worktreeCwd);
         throw err;
       }

@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import type { ExternalAgentDefinition, TaskDefinition } from '@fabster/core';
+import { isSandboxActive, sandboxWrap } from './sandbox.js';
 
 export interface ExternalAgentExecutionResult {
   readonly success: boolean;
@@ -72,8 +73,19 @@ export async function executeExternalAgentTask(
   );
   const writesPromptToStdin = !args.includes('{prompt}');
 
+  // If sandbox is active, wrap the agent command with nono
+  let spawnCommand = command;
+  let spawnArgs = [...resolvedArgs];
+  if (isSandboxActive()) {
+    const fullCmd = [command, ...resolvedArgs].join(' ');
+    const wrapped = sandboxWrap(fullCmd, cwd);
+    const parts = wrapped.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [wrapped];
+    spawnCommand = parts[0];
+    spawnArgs = parts.slice(1);
+  }
+
   return new Promise((resolve, reject) => {
-    const child = spawn(command, resolvedArgs, {
+    const child = spawn(spawnCommand, spawnArgs, {
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: process.env,

@@ -12,6 +12,11 @@ export interface NodeExecutionResult {
   readonly resolvedAgent?: string;
 }
 
+/**
+ * Execute a node. The runner enforces sandboxing by passing the node's
+ * permissions through — every executor (command, task, external agent)
+ * uses them to wrap execution with nono.
+ */
 export async function executeNode(
   node: ResolvedNode,
   resolvedInputs: Record<string, string | number | boolean>,
@@ -42,8 +47,6 @@ export async function executeNode(
     if (result.stdout) log(result.stdout);
     if (result.stderr) log(result.stderr);
 
-    // For commands, pass declared output values from inputs
-    // (the workflow author wires the known paths/values)
     collectDeclaredOutputs(def, resolvedInputs, outputs);
 
     return {
@@ -90,8 +93,6 @@ export async function executeNode(
       log(result.text);
     }
 
-    // For tasks, pass declared output values from inputs
-    // (same as commands — the workflow provides the values)
     collectDeclaredOutputs(def, resolvedInputs, outputs);
 
     return {

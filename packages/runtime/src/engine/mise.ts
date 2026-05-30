@@ -170,7 +170,6 @@ export async function miseExec(
   command: string,
   cwd: string,
   tools?: readonly string[],
-  permissions?: import('@fabster/core').Permissions,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   if (tools && tools.length > 0) {
     await ensureMiseToml(tools, cwd);
@@ -193,15 +192,8 @@ export async function miseExec(
     }
   }
 
-  let wrapped = wrapWithMise(command, tools);
-
-  // Wrap with nono if secrets or restrictions are declared and nono is available
-  if (permissions?.secrets?.length) {
-    const { isNonoAvailable, wrapWithNono } = await import('./nono.js');
-    if (await isNonoAvailable()) {
-      wrapped = wrapWithNono(wrapped, cwd, permissions);
-    }
-  }
+  const { sandboxWrap } = await import('./sandbox.js');
+  const wrapped = sandboxWrap(wrapWithMise(command, tools), cwd);
 
   const result = await nativeExec(wrapped, {
     cwd,
