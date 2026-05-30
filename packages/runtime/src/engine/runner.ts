@@ -330,8 +330,19 @@ export async function runWorkflow(
     }
   }
 
-  // Sequential execution in topological order
+  // Sequential execution in topological order — stop on first failure
   for (const node of nodes) {
+    // If any previous node failed, skip all remaining nodes
+    if (failed.size > 0) {
+      emit?.({ type: 'node:state', nodeId: node.id, state: 'skipped', log: 'Skipped — previous node failed' });
+      nodeResults.set(node.id, {
+        id: node.id, definition: node.definition, state: 'skipped', branch: '',
+        validationGates: [], reviewGates: [],
+        duration: 0, logs: ['Skipped — previous node failed'], outputs: {},
+      });
+      continue;
+    }
+
     await executeOneNode(node, previousBranch);
 
     // After each node completes, update previousBranch to this node's branch
