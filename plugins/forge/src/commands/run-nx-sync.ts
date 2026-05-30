@@ -4,7 +4,7 @@ export const runNxSync = command({
   name: 'run-nx-sync',
   purpose: 'Run nx sync to align generated files with configuration',
   steps: [
-    run('npm install'),
+    run('pnpm install --no-frozen-lockfile'),
     run('npx nx sync'),
   ],
   inputs: {},

@@ -4,15 +4,13 @@ export const validateRepo = command({
   name: 'validate-repo',
   purpose: 'Validate that the repository is in a clean state and prerequisites are installed',
   steps: [
-    run('git status --porcelain'),
-    run('node --version'),
-    run('pnpm --version'),
     run('mise --version'),
+    run('mise trust --all'),
+    run('mise install'),
   ],
   inputs: {},
   permissions: {
-    fs: { read: ['/repo/**'] },
-    tools: ['git', 'node', 'pnpm', 'mise'],
+    fs: { read: ['/repo/**'], write: ['/repo/**'] },
   },
   gates: [],
 });

@@ -35,11 +35,26 @@ export function splitGates(gates: readonly Gate[]): {
   return { validation, review };
 }
 
+/**
+ * Detect which package manager the project uses.
+ */
+async function detectPackageManager(cwd: string): Promise<'pnpm' | 'npm'> {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  if (fs.existsSync(path.join(cwd, 'pnpm-lock.yaml')) || fs.existsSync(path.join(cwd, 'pnpm-workspace.yaml'))) {
+    return 'pnpm';
+  }
+  return 'npm';
+}
+
 export async function runValidationGates(
   gates: readonly Gate[],
   cwd: string,
 ): Promise<GateResult[]> {
   const results: GateResult[] = [];
+  const pm = await detectPackageManager(cwd);
+  const nxCmd = pm === 'pnpm' ? 'pnpm exec nx' : 'npm exec nx --';
+  const tools = pm === 'pnpm' ? ['node', 'pnpm'] : ['node', 'npm'];
 
   for (const gate of gates) {
     let passed = false;
@@ -47,27 +62,27 @@ export async function runValidationGates(
 
     switch (gate.kind) {
       case 'successfulBuild': {
-        const result = await miseExec('npm exec nx -- affected -t build', cwd, ['node', 'npm']);
+        const result = await miseExec(`${nxCmd} affected -t build`, cwd, tools);
         passed = result.exitCode === 0;
-        detail = passed ? 'build passed' : result.stderr.slice(0, 200);
+        detail = passed ? 'build passed' : [result.stderr, result.stdout].filter(Boolean).join('\n').slice(0, 500);
         break;
       }
       case 'linted': {
-        const result = await miseExec('npm exec nx -- affected -t lint', cwd, ['node', 'npm']);
+        const result = await miseExec(`${nxCmd} affected -t lint`, cwd, tools);
         passed = result.exitCode === 0;
-        detail = passed ? 'lint passed' : result.stderr.slice(0, 200);
+        detail = passed ? 'lint passed' : [result.stderr, result.stdout].filter(Boolean).join('\n').slice(0, 500);
         break;
       }
       case 'formatted': {
-        const result = await miseExec('npm exec nx -- format:check', cwd, ['node', 'npm']);
+        const result = await miseExec(`${nxCmd} format:check`, cwd, tools);
         passed = result.exitCode === 0;
-        detail = passed ? 'format passed' : result.stderr.slice(0, 200);
+        detail = passed ? 'format passed' : [result.stderr, result.stdout].filter(Boolean).join('\n').slice(0, 500);
         break;
       }
       case 'testsPass': {
-        const result = await miseExec('npm exec nx -- affected -t test', cwd, ['node', 'npm']);
+        const result = await miseExec(`${nxCmd} affected -t test`, cwd, tools);
         passed = result.exitCode === 0;
-        detail = passed ? 'tests passed' : result.stderr.slice(0, 200);
+        detail = passed ? 'tests passed' : [result.stderr, result.stdout].filter(Boolean).join('\n').slice(0, 500);
         break;
       }
       case 'conformant': {

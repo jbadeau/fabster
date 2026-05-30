@@ -4,7 +4,7 @@ export const runForgeUpgrade = command({
   name: 'run-forge-upgrade',
   purpose: 'Run the Forge CLI upgrade command to apply latest migrations',
   steps: [
-    run('npm install'),
+    run('pnpm install --no-frozen-lockfile'),
     run('npx @bjb-forge/cli@latest upgrade'),
   ],
   inputs: {},

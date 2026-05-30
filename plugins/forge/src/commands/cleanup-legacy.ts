@@ -11,7 +11,6 @@ export const cleanupLegacy = command({
   inputs: {},
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
-    tools: ['node'],
   },
   gates: [],
 });

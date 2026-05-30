@@ -174,9 +174,14 @@ export async function miseExec(
     await ensureMiseToml(tools, cwd);
   }
 
+  const env = nativeEnv();
+  // Ignore the repo's existing mise config to avoid conflicts with deprecated syntax.
+  // Fabster writes its own mise.toml in the worktree via ensureMiseToml.
+  env.MISE_IGNORED_CONFIG_PATHS = cwd;
+
   const result = await nativeExec(wrapWithMise(command, tools), {
     cwd,
-    env: nativeEnv(),
+    env,
   });
   return {
     exitCode: result.exitCode,
