@@ -1,4 +1,6 @@
-# Fabster: Workflow Automation for Fabricating Code
+# What If AI Coding Agents Produced MR Stacks Instead of Giant Diffs?
+
+_A design sketch for reducing review load, context switching, and delivery risk around generated code._
 
 ## The Problem: Landing Generated Code Well
 
@@ -10,9 +12,11 @@ When you ask an AI agent to build a full-stack feature, it can produce hundreds 
 
 The cognitive load doesn't just fall on reviewers. It falls on *you*. You have to mentally track which pieces depend on which, what order things need to happen in, and whether the agent actually did what you asked. You're managing an assembly line in your head.
 
-Fabster is a framework for solving this. It lets you define multi-step workflows for fabricating code — where each step produces its own branch, its own merge request, and its own quality gates. The code lands incrementally, in reviewable pieces, and in the right order.
+Fabster is an idea for tackling this. It would let you define multi-step workflows for fabricating code — where each step can produce its own branch, its own merge request, and its own quality gates. The goal is for code to land incrementally, in reviewable pieces, and in the right order.
 
-This post describes the core ideas behind Fabster so you could build something like it yourself.
+This is a design sketch, not a claim that the model is proven. I’m writing it down to pressure-test the idea: what breaks, what is overcomplicated, and what would actually help teams review AI-generated code?
+
+This post sketches the core ideas behind Fabster and the tradeoffs I’m trying to understand.
 
 ---
 
@@ -51,7 +55,7 @@ gitGraph
 
 Either way, each MR is small, focused, and independently reviewable. A reviewer can look at "scaffold the tokens library" in isolation, approve it, then move on to "implement the token values." The cognitive load per review drops dramatically.
 
-This is how experienced engineers already work when they tackle large features manually — they break the work into a stack of commits and MRs. Fabster automates that discipline for fabricated code.
+This resembles how experienced engineers often work when they tackle large features manually — they break the work into a stack of commits and MRs. The question is whether that discipline can be made explicit enough for generated code without adding too much process.
 
 ---
 
@@ -509,17 +513,17 @@ Each MR is focused. The scaffolding MRs are trivial to review. The implementatio
 
 ## The Ergonomics of Fabrication
 
-Fabster is not only about smaller MRs. It is about reducing the coordination burden around generated code.
+The appeal of this model is not only smaller MRs. It is the possibility of reducing the coordination burden around generated code.
 
-A large agent run forces you to plan, prompt, inspect, debug, split commits, check CI, prepare reviews, and explain what happened. Fabster turns that into an explicit workflow: dependencies are visible, state is tracked, failures are local, and each unit has its own gates.
+A large agent run forces you to plan, prompt, inspect, debug, split commits, check CI, prepare reviews, and explain what happened. A Fabster-style workflow would make that coordination explicit: dependencies are visible, state is tracked, failures are local, and each unit has its own gates.
 
-The result is less context switching for the workflow author, less review fatigue for reviewers, and lower agent cost because routine scripted work does not need to be rediscovered by an agent every time.
+If the model works, the result should be less context switching for the workflow author, less review fatigue for reviewers, and lower agent cost because routine scripted work does not need to be rediscovered by an agent every time.
 
 ---
 
 ## Why This Matters
 
-The real value isn't in the framework mechanics. It's in what it does to the *shape* of fabricated code as it enters your codebase.
+The potential value is not in the framework mechanics. It is in what it might do to the *shape* of fabricated code as it enters your codebase.
 
 Without structure, fabricated code arrives as a blob. With Fabster-style workflows, it arrives as a sequence of small, validated, reviewable increments — the same way a thoughtful engineer would submit it.
 
@@ -529,9 +533,9 @@ This reduces cognitive load at every stage:
 - **For reviewers**: each MR is small and focused. They review one concern at a time.
 - **For future colleagues**: the git history tells a coherent story. Each commit and MR has a clear purpose. Six months from now, `git log` makes sense.
 
-The core ideas here aren't complicated. Stacked MRs, capability-based agent matching, and validation gates are all established patterns. The contribution is composing them into a coherent framework purpose-built for fabricating code at scale, with room to grow into richer workspace abstractions and learning systems later.
+The core ideas here aren't exotic. Stacked MRs, capability-based agent matching, and validation gates are all established patterns. The interesting question is whether composing them this way creates a useful workflow for generated code, or whether it just moves the complexity somewhere else.
 
-If AI agents are going to fabricate more and more of our code, we need to make sure that code lands in the right order and the right shape. Not for the machine's sake — for ours.
+If AI agents are going to fabricate more and more of our code, we need better ways to make that code land in the right order and the right shape. This is one possible shape for that conversation.
 
 ---
 
