@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpBatchLink, splitLink, wsLink, createWSClient } from '@trpc/client';
+import { httpLink, splitLink, wsLink, createWSClient } from '@trpc/client';
 import { trpc } from './trpc';
 
 // Derive daemon URLs from current page origin (works with port forwarding)
@@ -22,7 +22,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
         splitLink({
           condition: (op) => op.type === 'subscription',
           true: wsLink({ client: wsClient }),
-          false: httpBatchLink({ url: getDaemonUrl() }),
+          false: httpLink({ url: getDaemonUrl() }),
         }),
       ],
     }),

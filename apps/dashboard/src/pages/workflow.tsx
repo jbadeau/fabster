@@ -344,6 +344,7 @@ function autoLayoutDAG(
             type: out.kind as 'string' | 'number' | 'boolean',
             description: out.description ?? '',
           })),
+          agent: sn.agent,
           requirements: sn.requirements,
           rules: sn.rules ?? sn.gates,
           permissions: sn.permissions ? { tools: sn.permissions.tools } : undefined,
@@ -412,14 +413,28 @@ function ComposeCanvas({ runId }: { runId?: string }) {
     }
   }, [runData?.nodes?.length, setNodes, setEdges]); // Only re-layout when node count changes
 
-  // Apply execution states to nodes
+  // Build agent map from server data
+  const agentMap = useMemo(() => {
+    if (!runData?.nodes) return {};
+    const map: Record<string, string> = {};
+    for (const n of runData.nodes) {
+      if (n.agent) map[n.id] = n.agent;
+    }
+    return map;
+  }, [runData]);
+
+  // Apply execution states and agent assignments to nodes
   const nodesWithState = useMemo(() => {
     if (!runStates) return nodes;
     return nodes.map((n) => ({
       ...n,
-      data: { ...n.data, status: runStates[n.id] ?? 'pending' },
+      data: {
+        ...n.data,
+        status: runStates[n.id] ?? 'pending',
+        agent: agentMap[n.id] ?? n.data.agent,
+      },
     }));
-  }, [runStates, nodes]);
+  }, [runStates, agentMap, nodes]);
 
   // Style edges based on target node status
   const edgesWithState = useMemo(() => {
@@ -499,8 +514,8 @@ function ComposeCanvas({ runId }: { runId?: string }) {
   return (
     <>
     <div className="flex flex-1 overflow-hidden">
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex-1">
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+        <div className="flex-1 min-h-0">
         <ReactFlow
           nodes={nodesWithState}
           edges={edgesWithState}
