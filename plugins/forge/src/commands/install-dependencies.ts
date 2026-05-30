@@ -10,7 +10,7 @@ export const installDependencies = command({
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
     tools: ['node', 'pnpm'],
-    network: ['localhost'],
+    secrets: ['CODEAK_REPOSITORY_BASIC_AUTH'],
   },
   gates: [],
 });

@@ -159,27 +159,51 @@ export function wrapWithMise(command: string, tools?: readonly string[]): string
     const toolArgs = normalizeTools(tools).join(' ');
     return `${MISE_BIN} exec ${toolArgs} -- ${command}`;
   }
-  return `${MISE_BIN} exec -- ${command}`;
+  // No tools declared — run directly without mise wrapping
+  return command;
 }
 
 /**
- * Execute a command natively on the host OS, wrapped with mise.
+ * Execute a command natively on the host OS, wrapped with mise and optionally nono.
  */
 export async function miseExec(
   command: string,
   cwd: string,
   tools?: readonly string[],
+  permissions?: import('@fabster/core').Permissions,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   if (tools && tools.length > 0) {
     await ensureMiseToml(tools, cwd);
   }
 
   const env = nativeEnv();
-  // Ignore the repo's existing mise config to avoid conflicts with deprecated syntax.
-  // Fabster writes its own mise.toml in the worktree via ensureMiseToml.
-  env.MISE_IGNORED_CONFIG_PATHS = cwd;
 
-  const result = await nativeExec(wrapWithMise(command, tools), {
+  // Sanitize any existing mise config in the worktree to remove deprecated sections
+  const { existsSync, readFileSync, writeFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  for (const name of ['.mise.toml', 'mise.toml']) {
+    const p = join(cwd, name);
+    if (existsSync(p)) {
+      const content = readFileSync(p, 'utf8');
+      if (content.includes('[alias]')) {
+        // Remove deprecated [alias] section
+        const sanitized = content.replace(/\[alias\][\s\S]*?(?=\[|$)/g, '');
+        writeFileSync(p, sanitized);
+      }
+    }
+  }
+
+  let wrapped = wrapWithMise(command, tools);
+
+  // Wrap with nono if secrets or restrictions are declared and nono is available
+  if (permissions?.secrets?.length) {
+    const { isNonoAvailable, wrapWithNono } = await import('./nono.js');
+    if (await isNonoAvailable()) {
+      wrapped = wrapWithNono(wrapped, cwd, permissions);
+    }
+  }
+
+  const result = await nativeExec(wrapped, {
     cwd,
     env,
   });
