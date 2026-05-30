@@ -9,6 +9,8 @@ interface TaskConfig<I extends IOSchema, O extends IOSchema> {
   readonly purpose: string;
   readonly reasoning?: ReasoningLevel;
   readonly requirements: readonly Requirement[];
+  readonly instructions?: readonly string[];
+  readonly rules?: readonly string[];
   readonly inputs: I;
   readonly outputs?: O;
   readonly permissions?: Permissions;

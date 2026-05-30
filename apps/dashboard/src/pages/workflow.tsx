@@ -66,6 +66,7 @@ interface NodeData {
   agent?: string;
   purpose?: string;
   run?: string;
+  order?: number;
   status?: ExecutionStatus;
   inputs?: SchemaField[];
   outputs?: SchemaField[];
@@ -84,11 +85,11 @@ function resolveTemplate(template: string, inputs?: SchemaField[]): string {
 }
 
 const STATUS_BORDER: Record<ExecutionStatus, string> = {
-  pending: 'border-dashed border-muted-foreground/40 animate-pulse',
-  running: 'border-blue-500 border-2 animate-pulse',
-  complete: 'border-green-500',
-  failed: 'border-red-500',
-  gated: 'border-yellow-500',
+  pending: 'border-dashed border-border',
+  running: 'border-border border-2 animate-pulse',
+  complete: 'border-border',
+  failed: 'border-border',
+  gated: 'border-border',
   skipped: 'border-dashed border-border/30',
 };
 
@@ -100,11 +101,16 @@ function TaskNode({ data, selected }: { data: NodeData; selected?: boolean }) {
   return (
     <div className={`rounded-md border p-3 shadow-xs w-[200px] relative ${statusBorder} ${isPending ? 'bg-muted opacity-50' : 'bg-card'} ${selected ? 'ring-1 ring-primary' : ''}`}>
       <Handle type="target" position={Position.Top} className="!bg-muted-foreground !w-2 !h-2" />
+      {data.order != null && (
+        <div className="absolute -top-2.5 -right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          {data.order}
+        </div>
+      )}
       <div className="flex items-center gap-2">
         {isTask ? (
-          <ClipboardList className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-blue-500'}`} />
+          <ClipboardList className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-foreground'}`} />
         ) : (
-          <TerminalIcon className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-green-500'}`} />
+          <TerminalIcon className={`h-4 w-4 shrink-0 ${isPending ? 'text-muted-foreground' : 'text-foreground'}`} />
         )}
         <span className="text-xs font-medium">{data.label}</span>
       </div>
@@ -126,38 +132,38 @@ const nodeTypes = {
   taskNode: TaskNode,
 };
 
-// TodoMVC workflow — parallelized DAG with full data
+// TodoMVC workflow — DAG with linear execution order
 const initialNodes: Node[] = [
   {
     id: 'init-workspace',
     type: 'taskNode',
     position: { x: 350, y: 0 },
-    data: { label: 'Init Workspace', definition: 'nx:init-workspace', type: 'command', run: 'npx create-nx-workspace {name} --preset=apps --ci=skip --nx-cloud=skip', inputs: [{ name: 'name', type: 'string', description: 'Workspace name', value: 'todomvc' }], permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Init Workspace', definition: 'nx:init-workspace', type: 'command', order: 1, run: 'npx create-nx-workspace {name} --preset=apps --ci=skip --nx-cloud=skip', inputs: [{ name: 'name', type: 'string', description: 'Workspace name', value: 'todomvc' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'add-react',
     type: 'taskNode',
     position: { x: 100, y: 120 },
-    data: { label: 'Add React Plugin', definition: 'nx:add-plugin', type: 'command', run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/react' }], permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Add React Plugin', definition: 'nx:add-plugin', type: 'command', order: 2, run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/react' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'add-node',
     type: 'taskNode',
     position: { x: 600, y: 120 },
-    data: { label: 'Add Node Plugin', definition: 'nx:add-plugin', type: 'command', run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/node' }], permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Add Node Plugin', definition: 'nx:add-plugin', type: 'command', order: 3, run: 'npx nx add {plugin}', inputs: [{ name: 'plugin', type: 'string', description: 'Nx plugin package', value: '@nx/node' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'generate-frontend',
     type: 'taskNode',
     position: { x: 100, y: 240 },
-    data: { label: 'Generate Frontend App', definition: 'nx:generate-app', type: 'command', run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/react:app' }, { name: 'name', type: 'string', description: 'App name', value: 'web' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'apps/web' }], permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Generate Frontend App', definition: 'nx:generate-app', type: 'command', order: 4, run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/react:app' }, { name: 'name', type: 'string', description: 'App name', value: 'web' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'apps/web' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'write-openapi-spec',
     type: 'taskNode',
     position: { x: 450, y: 240 },
     data: {
-      label: 'Write API Spec', definition: 'openapi:generate-spec', type: 'task', reasoning: 'medium', agent: 'Dozer',
+      label: 'Write API Spec', definition: 'openapi:generate-spec', type: 'task', order: 5, reasoning: 'medium', agent: 'Dozer',
       purpose: 'Create an API spec project with a valid OpenAPI 3.0 YAML file.\n\nDefine a Todo schema with: id, title, completed, createdAt.\nDefine endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}.',
       inputs: [{ name: 'project', type: 'string', description: 'Library project name', value: 'api-spec' }, { name: 'specPath', type: 'string', description: 'Output path for the OpenAPI spec', value: 'packages/api-spec/todo.openapi.yaml' }],
       outputs: [{ name: 'specPath', type: 'string', description: 'Path to the generated OpenAPI spec file' }],
@@ -170,26 +176,26 @@ const initialNodes: Node[] = [
     id: 'generate-backend',
     type: 'taskNode',
     position: { x: 750, y: 240 },
-    data: { label: 'Generate Backend App', definition: 'nx:generate-app', type: 'command', run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/node:app' }, { name: 'name', type: 'string', description: 'App name', value: 'api' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'apps/api' }], permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Generate Backend App', definition: 'nx:generate-app', type: 'command', order: 6, run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/node:app' }, { name: 'name', type: 'string', description: 'App name', value: 'api' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'apps/api' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'generate-client-lib',
     type: 'taskNode',
     position: { x: 450, y: 360 },
-    data: { label: 'Generate Client Lib', definition: 'nx:generate-library', type: 'command', run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/js:library' }, { name: 'name', type: 'string', description: 'Library name', value: 'api-client' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'packages/api-client' }], permissions: { tools: ['node', 'npm'] } },
+    data: { label: 'Generate Client Lib', definition: 'nx:generate-library', type: 'command', order: 7, run: 'npx nx g {generator} {name} --directory={directory}', inputs: [{ name: 'generator', type: 'string', description: 'Nx generator', value: '@nx/js:library' }, { name: 'name', type: 'string', description: 'Library name', value: 'api-client' }, { name: 'directory', type: 'string', description: 'Output directory', value: 'packages/api-client' }], permissions: { tools: ['node', 'npm'] } },
   },
   {
     id: 'generate-api-client',
     type: 'taskNode',
     position: { x: 450, y: 480 },
-    data: { label: 'Generate API Client', definition: 'openapi:generate-client', type: 'command', run: 'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir}', inputs: [{ name: 'specPath', type: 'string', description: 'Path to the OpenAPI spec', value: 'packages/api-spec/todo.openapi.yaml' }, { name: 'outputDir', type: 'string', description: 'Output directory for generated client', value: 'packages/api-client/src/generated' }], permissions: { tools: ['node', 'npm', 'java@21'] }, rules: ['successfulBuild'] },
+    data: { label: 'Generate API Client', definition: 'openapi:generate-client', type: 'command', order: 8, run: 'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir}', inputs: [{ name: 'specPath', type: 'string', description: 'Path to the OpenAPI spec', value: 'packages/api-spec/todo.openapi.yaml' }, { name: 'outputDir', type: 'string', description: 'Output directory for generated client', value: 'packages/api-client/src/generated' }], permissions: { tools: ['node', 'npm', 'java@21'] }, rules: ['successfulBuild'] },
   },
   {
     id: 'implement-backend',
     type: 'taskNode',
     position: { x: 700, y: 480 },
     data: {
-      label: 'Implement Backend', definition: 'code:implement-backend', type: 'task', reasoning: 'high', agent: 'Tank',
+      label: 'Implement Backend', definition: 'code:implement-backend', type: 'task', order: 9, reasoning: 'high', agent: 'Tank',
       purpose: 'Implement an Express API server for the Todo CRUD API.\n\nCreate main.ts (Express server with CORS, JSON, port 3000), routes/todos.ts (CRUD handlers with in-memory storage), types.ts (Todo interface matching OpenAPI spec).\n\nUse in-memory array, generate UUIDs, return proper HTTP status codes.',
       inputs: [{ name: 'project', type: 'string', description: 'Nx project name for the backend', value: 'api' }, { name: 'specProject', type: 'string', description: 'Nx project containing the OpenAPI spec', value: 'api-spec' }],
       requirements: ['code-generation', 'testing'],
@@ -202,7 +208,7 @@ const initialNodes: Node[] = [
     type: 'taskNode',
     position: { x: 300, y: 620 },
     data: {
-      label: 'Implement Frontend', definition: 'code:implement-frontend', type: 'task', reasoning: 'high', agent: 'Trinity',
+      label: 'Implement Frontend', definition: 'code:implement-frontend', type: 'task', order: 10, reasoning: 'high', agent: 'Trinity',
       purpose: 'Implement a TodoMVC React frontend application.\n\nCreate app.tsx (main component), todo-item.tsx (item with checkbox/delete), todo-input.tsx (add input), use-todos.ts (custom hook fetching from localhost:3000).\n\nFeatures: add, toggle, delete todos, show remaining count.',
       inputs: [{ name: 'project', type: 'string', description: 'Nx project name for the frontend', value: 'web' }, { name: 'clientProject', type: 'string', description: 'Nx project containing the API client', value: 'api-client' }],
       requirements: ['code-generation', 'react', 'testing'],
@@ -237,14 +243,14 @@ const initialEdges: Edge[] = [
 // Mock execution states for runs
 // Mock execution states — each matches the parallelized DAG
 const MOCK_RUN_STATES: Record<string, Record<string, ExecutionStatus>> = {
-  // Running: init done, plugins done, 3 parallel nodes executing
+  // Running: linear execution through DAG — one node at a time
   run_1715961600: {
     'init-workspace': 'complete',
     'add-react': 'complete',
     'add-node': 'complete',
-    'generate-frontend': 'running',
+    'generate-frontend': 'complete',
     'write-openapi-spec': 'running',
-    'generate-backend': 'running',
+    'generate-backend': 'pending',
     'generate-client-lib': 'pending',
     'generate-api-client': 'pending',
     'implement-backend': 'pending',
@@ -550,9 +556,9 @@ function PropertiesPanel({
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
           {isTask ? (
-            <ClipboardList className="h-4 w-4 text-blue-500" />
+            <ClipboardList className="h-4 w-4 text-foreground" />
           ) : (
-            <TerminalIcon className="h-4 w-4 text-green-500" />
+            <TerminalIcon className="h-4 w-4 text-foreground" />
           )}
           <h3 className="font-semibold text-sm">{data.label}</h3>
         </div>
@@ -767,11 +773,11 @@ function SchemaFieldInput({
 }
 
 function logColor(line: string): string {
-  if (line.startsWith('[tool]')) return 'text-purple-500';
+  if (line.startsWith('[tool]')) return 'text-foreground';
   if (line.startsWith('[text]')) return 'text-foreground';
-  if (line.startsWith('[done]') || line.startsWith('[complete]')) return 'text-green-500';
-  if (line.startsWith('ERROR') || line.startsWith('[failed]')) return 'text-destructive';
-  if (line.startsWith('>')) return 'text-cyan-500';
+  if (line.startsWith('[done]') || line.startsWith('[complete]')) return 'text-foreground';
+  if (line.startsWith('ERROR') || line.startsWith('[failed]')) return 'text-foreground';
+  if (line.startsWith('>')) return 'text-foreground';
   return 'text-muted-foreground';
 }
 

@@ -23,8 +23,6 @@
   },
   "dependencies": {
     "@fabster/core": "0.0.1",
-    "@struktoai/mirage-core": "^0.0.1",
-    "@struktoai/mirage-node": "^0.0.1",
     "ai": "^6.0.182",
     "tslib": "^2.3.0"
   }

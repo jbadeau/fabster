@@ -1,2 +1,6 @@
 [tools]
 node = "latest"
+
+[tasks.dev]
+description = "Start fabster daemon and dashboard"
+run = "npx tsx packages/cli/src/bin/fabster.ts"

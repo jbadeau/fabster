@@ -1,13 +1,13 @@
-import { command, string } from '@fabster/core';
+import { command, string, run } from '@fabster/core';
 
 export const initWorkspace = command({
   name: 'init-workspace',
   purpose: 'Initialize an Nx workspace in the current directory using nx init',
-  run: [
-    'npm init -y',
-    'npm pkg set name=@{name}/source',
-    'npm pkg set private=true',
-    'npx nx@latest init --nxCloud=skip --useDotNxInstallation=false --no-interactive',
+  steps: [
+    run('npm init -y'),
+    run('npm pkg set name=@{name}/source'),
+    run('npm pkg set private=true'),
+    run('npx nx@latest init --nxCloud=skip --useDotNxInstallation=false --no-interactive'),
   ],
   inputs: {
     name: string('Workspace name'),

@@ -10,4 +10,5 @@ export interface Gate {
   readonly kind: BuiltinGateKind | (string & {});
   readonly description?: string;
   readonly required?: boolean;
+  readonly maxRetries?: number;
 }

@@ -23,11 +23,11 @@ interface Workflow {
   mrs: number;
 }
 
-const STATUS_CONFIG: Record<RunStatus, { icon: React.ReactNode; label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+const STATUS_CONFIG: Record<RunStatus, { icon: React.ReactNode; label: string; variant: 'default' | 'secondary' | 'outline' }> = {
   draft: { icon: <PenLine className="h-3 w-3" />, label: 'Draft', variant: 'outline' },
   running: { icon: <Loader className="h-3 w-3 animate-spin" />, label: 'Running', variant: 'default' },
   success: { icon: <CircleCheck className="h-3 w-3" />, label: 'Success', variant: 'secondary' },
-  failed: { icon: <CircleX className="h-3 w-3" />, label: 'Failed', variant: 'destructive' },
+  failed: { icon: <CircleX className="h-3 w-3" />, label: 'Failed', variant: 'outline' },
   gated: { icon: <CircleDot className="h-3 w-3" />, label: 'Gated', variant: 'outline' },
   cancelled: { icon: <CircleMinus className="h-3 w-3" />, label: 'Cancelled', variant: 'secondary' },
 };
@@ -85,7 +85,7 @@ export function WorkflowsPage() {
                     <div className="flex items-center gap-2">
                       <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${wf.status === 'failed' ? 'bg-destructive' : wf.status === 'running' ? 'bg-primary' : 'bg-green-500'}`}
+                          className="h-full rounded-full bg-foreground"
                           style={{ width: `${(wf.nodes.completed / wf.nodes.total) * 100}%` }}
                         />
                       </div>

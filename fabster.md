@@ -536,7 +536,3 @@ This reduces cognitive load at every stage:
 The core ideas here aren't exotic. Stacked MRs, capability-based agent matching, and validation gates are all established patterns. The interesting question is whether composing them this way creates a useful workflow for generated code, or whether it just moves the complexity somewhere else.
 
 If AI agents are going to fabricate more and more of our code, we need better ways to make that code land in the right order and the right shape. This is one possible shape for that conversation.
-
----
-
-*Fabster is open source and available on [GitHub](https://github.com/jbadeau/fabster). Fabricate responsibly.*

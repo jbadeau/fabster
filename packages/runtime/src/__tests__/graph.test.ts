@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { RAMResource } from '@struktoai/mirage-core';
-import { command, string, boolean, workspace, workflow, successfulBuild } from '@fabster/core';
+import { command, run, string, boolean, workspace, workflow, successfulBuild } from '@fabster/core';
 import { extractNodes } from '../engine/graph.js';
 
 const testCommand = command({
   name: 'test-cmd',
   purpose: 'Test command',
-  run: 'echo {name}',
+  steps: [run('echo {name}')],
   inputs: { name: string(), flag: boolean() },
   gates: [successfulBuild()],
 });
@@ -16,7 +15,7 @@ describe('extractNodes', () => {
     const wf = workflow({
       name: 'test-wf',
       purpose: 'Test workflow',
-      workspace: workspace({ '/repo': new RAMResource() }),
+      workspace: workspace('/tmp/test-repo'),
       graph: (ctx) => {
         const n1 = ctx.run('step-1', testCommand, { name: 'a', flag: true });
         ctx.run('step-2', testCommand, { name: 'b', flag: false }, { dependsOn: [n1] });
@@ -37,7 +36,7 @@ describe('extractNodes', () => {
     const wf = workflow({
       name: 'dup-wf',
       purpose: 'Dup test',
-      workspace: workspace({ '/repo': new RAMResource() }),
+      workspace: workspace('/tmp/test-repo'),
       graph: (ctx) => {
         ctx.run('same-id', testCommand, { name: 'a', flag: true });
         ctx.run('same-id', testCommand, { name: 'b', flag: false });
@@ -51,7 +50,7 @@ describe('extractNodes', () => {
     const wf = workflow({
       name: 'bad-dep-wf',
       purpose: 'Bad dep test',
-      workspace: workspace({ '/repo': new RAMResource() }),
+      workspace: workspace('/tmp/test-repo'),
       graph: (ctx) => {
         ctx.run('step-1', testCommand, { name: 'a', flag: true }, {
           dependsOn: [{ id: 'nonexistent' }],

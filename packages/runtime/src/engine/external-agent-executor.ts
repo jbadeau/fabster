@@ -14,6 +14,7 @@ function buildPrompt(
   inputs: Record<string, string | number | boolean>,
   agent: ExternalAgentDefinition,
   cwd: string,
+  retryEvidence?: string,
 ): string {
   const inputDescription = Object.entries(inputs)
     .map(([key, value]) => `- ${key}: ${String(value)}`)
@@ -26,18 +27,28 @@ function buildPrompt(
     `## Task`,
     task.purpose,
     '',
+    ...(task.instructions?.length ? ['', '## Instructions', ...task.instructions.map(i => `- ${i}`)] : []),
+    ...(task.rules?.length ? ['', '## Rules (expected output properties)', ...task.rules.map(r => `- ${r}`)] : []),
+    '',
     `## Inputs`,
     inputDescription || '- none',
     '',
     `## Repository`,
     cwd,
     '',
-    `## Rules`,
+    `## Constraints`,
     `- Modify files only inside the repository root above.`,
     `- Do not create commits, branches, pull requests, or merge requests.`,
     `- Run the verification commands that are appropriate for the change.`,
     `- Stop when the requested implementation is complete.`,
     `- Report the files changed and verification results.`,
+    ...(retryEvidence ? [
+      '',
+      `## Previous Attempt Failed`,
+      retryEvidence,
+      '',
+      `Fix the issues above and try again.`,
+    ] : []),
   ]
     .filter((part): part is string => Boolean(part))
     .join('\n');
@@ -49,8 +60,9 @@ export async function executeExternalAgentTask(
   agent: ExternalAgentDefinition,
   cwd: string,
   onLog?: (message: string) => void,
+  retryEvidence?: string,
 ): Promise<ExternalAgentExecutionResult> {
-  const prompt = buildPrompt(task, inputs, agent, cwd);
+  const prompt = buildPrompt(task, inputs, agent, cwd, retryEvidence);
   const { command, args = [], timeoutMs } = agent.adapter;
   const resolvedArgs = args.map((arg) =>
     arg === '{prompt}' ? prompt : arg,

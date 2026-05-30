@@ -18,8 +18,7 @@ export async function executeCommand(
   inputs: Record<string, string | number | boolean>,
   cwd: string,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const commands =
-    typeof command.run === 'string' ? [command.run] : [...command.run];
+  const commands = command.steps.map(s => s.script);
 
   let lastResult = { exitCode: 0, stdout: '', stderr: '' };
 

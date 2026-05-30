@@ -18,12 +18,12 @@
  */
 
 import { createOpenAI } from '@ai-sdk/openai';
-import { DiskResource } from '@struktoai/mirage-node';
 import {
   workspace,
   command,
   workflow,
   string,
+  run,
   require,
   task,
   successfulBuild,
@@ -102,8 +102,8 @@ Call writeFile twice — once for each file. Start now.`,
 const generateApiClient = command({
   name: 'generate-api-client',
   purpose: 'Generate a TypeScript fetch API client from an OpenAPI spec using openapi-generator',
-  run: [
-    'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --skip-validate-spec --additional-properties=typescriptThreePlus=true,supportsES6=true',
+  steps: [
+    run('npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --skip-validate-spec --additional-properties=typescriptThreePlus=true,supportsES6=true'),
   ],
   inputs: {
     specPath: string('Path to the OpenAPI spec file'),
@@ -188,9 +188,7 @@ After writing files, run: npx nx build web`,
 export default workflow({
   name: 'create-todomvc',
   purpose: 'Create a full-stack TodoMVC application with OpenAPI spec, API client, Express backend, and React frontend',
-  workspace: workspace({
-    '/repo': new DiskResource({ root: '/Users/jbadeau/git/fabster-demo' }),
-  }),
+  workspace: workspace('/Users/jbadeau/git/fabster-demo'),
   graph: (ctx) => {
     // Initialize Nx workspace
     const init = ctx.run('init-workspace', initWorkspace, {

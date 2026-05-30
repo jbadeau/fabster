@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { RAMResource } from '@struktoai/mirage-core';
 import { workflow } from '../builders/workflow.js';
 import { workspace } from '../builders/workspace.js';
-import { command } from '../builders/command.js';
+import { command, run } from '../builders/command.js';
 import { string, boolean } from '../builders/io.js';
 import { successfulBuild, linted } from '../builders/gate.js';
 
 const createReactLibrary = command({
   name: 'create-react-library',
   purpose: 'Create a React library in the monorepo',
-  run: 'nx generate @forge/react:library --name={name} --scope={scope}',
+  steps: [run('nx generate @forge/react:library --name={name} --scope={scope}')],
   inputs: {
     name: string(),
     scope: string(),
@@ -27,9 +26,7 @@ describe('workflow', () => {
     const wf = workflow({
       name: 'create-design-system',
       purpose: 'Create a full design system',
-      workspace: workspace({
-        '/repo': new RAMResource(),
-      }),
+      workspace: workspace('/repo'),
       graph: (ctx) => {
         const scaffoldTokens = ctx.run('scaffold-tokens', createReactLibrary, {
           name: 'tokens',
@@ -52,7 +49,7 @@ describe('workflow', () => {
 
     expect(wf.kind).toBe('workflow');
     expect(wf.name).toBe('create-design-system');
-    expect(wf.workspace.mounts['/repo'].kind).toBe('ram');
+    expect(wf.workspace.root).toBe('/repo');
   });
 
   it('graph function produces node handles', () => {
@@ -61,9 +58,7 @@ describe('workflow', () => {
     workflow({
       name: 'test-workflow',
       purpose: 'Test node handles',
-      workspace: workspace({
-        '/repo': new RAMResource(),
-      }),
+      workspace: workspace('/repo'),
       graph: (ctx) => {
         const n1 = ctx.run('step-1', createReactLibrary, {
           name: 'a',

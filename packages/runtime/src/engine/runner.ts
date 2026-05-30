@@ -1,10 +1,8 @@
-import { Workspace } from '@struktoai/mirage-node';
-import { DiskResource } from '@struktoai/mirage-node';
 import type { InputValue, WorkflowDefinition } from '@fabster/core';
 import type { GateResult, NodeResult, NodeState, RunOptions, RunResult, WorkflowEvent } from '../types.js';
 import { extractNodes } from './graph.js';
 import { executeNode } from './node-executor.js';
-import { provisionTools } from './mise.js';
+import { provisionTools, miseExec } from './mise.js';
 import {
   createWorktree,
   commitChanges,
@@ -36,21 +34,12 @@ function resolveInputs(
   return resolved;
 }
 
-function extractCwd(workflow: WorkflowDefinition): string {
-  for (const resource of Object.values(workflow.workspace.mounts)) {
-    if (resource.kind === 'disk' && 'root' in resource) {
-      return (resource as { root: string }).root;
-    }
-  }
-  throw new Error('No DiskResource found in workspace mounts');
-}
-
 export async function runWorkflow(
   workflow: WorkflowDefinition,
   options: RunOptions,
 ): Promise<RunResult> {
   const nodes = extractNodes(workflow);
-  const repoCwd = extractCwd(workflow);
+  const repoCwd = workflow.workspace.root;
   const emit = options.emitter
     ? (data: WorkflowEvent) => { options.emitter!.emit('progress', data); }
     : undefined;
@@ -90,29 +79,17 @@ export async function runWorkflow(
     dependencyMap.set(node.id, node.dependsOn);
   }
 
-  // Check if all dependencies of a node are satisfied
-  function isReady(nodeId: string): boolean {
-    const deps = dependencyMap.get(nodeId) ?? [];
-    return deps.every((d) => completed.has(d));
-  }
-
   // Check if any dependency failed (node should be skipped)
   function hasFailed(nodeId: string): boolean {
     const deps = dependencyMap.get(nodeId) ?? [];
     return deps.some((d) => failed.has(d));
   }
 
-  // Find the branch to base this node's worktree on
-  function findBaseBranch(nodeId: string): string {
-    const deps = dependencyMap.get(nodeId) ?? [];
-    if (deps.length === 0) return 'main';
-    // Use the first dependency's branch as the base
-    const depResult = nodeResults.get(deps[0]);
-    return depResult?.branch || 'main';
-  }
+  // Track the previous branch for linear chaining
+  let previousBranch = 'main';
 
-  // Execute a single node (extracted from the old loop body)
-  async function executeOneNode(node: typeof nodes[number]): Promise<void> {
+  // Execute a single node
+  async function executeOneNode(node: typeof nodes[number], baseBranch: string, retryEvidence?: string): Promise<void> {
     const startTime = Date.now();
     const def = node.definition;
     const branch = `fabster/${workflow.name}/${node.id}`;
@@ -121,7 +98,6 @@ export async function runWorkflow(
     let mrUrl: string | undefined;
     let validationGates: GateResult[] = [];
     let reviewGates: GateResult[] = [];
-    const baseBranch = findBaseBranch(node.id);
 
     if (hasFailed(node.id)) {
       emit?.({ type: 'node:state', nodeId: node.id, state: 'skipped', log: 'Skipped — dependency failed' });
@@ -153,18 +129,35 @@ export async function runWorkflow(
       }
 
       // === EXECUTING ===
-      state = 'executing';
-      logs.push(`[executing] ${def.kind}: ${def.name}`);
+      state = retryEvidence ? 'retrying' : 'executing';
+      logs.push(`[${state}] ${def.kind}: ${def.name}`);
       if (emit) {
-        emit({ type: 'node:state', nodeId: node.id, state: 'executing' });
-        emit({ type: 'node:log', nodeId: node.id, message: `[executing] ${def.kind}: ${def.name}` });
+        emit({ type: 'node:state', nodeId: node.id, state });
+        emit({ type: 'node:log', nodeId: node.id, message: `[${state}] ${def.kind}: ${def.name}` });
       } else {
-        console.log(`  ⟳ ${node.id} [executing] ${def.kind}: ${def.name}`);
+        console.log(`  ⟳ ${node.id} [${state}] ${def.kind}: ${def.name}`);
       }
 
       const worktree = await createWorktree(repoCwd, workflow.name, node.id, baseBranch);
       logs.push(`Created worktree: ${worktree.worktreePath} (branch: ${worktree.branch})`);
       const worktreeCwd = worktree.worktreePath;
+
+      // Install dependencies if package.json exists (node_modules is gitignored)
+      {
+        const { existsSync } = await import('node:fs');
+        const pkgPath = (await import('node:path')).join(worktreeCwd, 'package.json');
+        if (existsSync(pkgPath)) {
+          const installLog = 'Installing dependencies in worktree...';
+          logs.push(installLog);
+          emit?.({ type: 'node:log', nodeId: node.id, message: installLog });
+          const installResult = await miseExec('npm install', worktreeCwd);
+          if (installResult.exitCode !== 0) {
+            const errMsg = `npm install failed (exit ${installResult.exitCode}): ${installResult.stderr}`;
+            logs.push(errMsg);
+            emit?.({ type: 'node:log', nodeId: node.id, message: errMsg });
+          }
+        }
+      }
 
       const tools = def.permissions?.tools ?? [];
       if (tools.length > 0) {
@@ -174,13 +167,8 @@ export async function runWorkflow(
         await provisionTools(tools, worktreeCwd);
       }
 
-      const ws = new Workspace(
-        { '/repo': new DiskResource({ root: worktreeCwd }) },
-        { mode: 'exec' },
-      );
-
       try {
-        const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, ws, worktreeCwd, emit ? (msg) => emit({ type: 'node:log', nodeId: node.id, message: msg }) : undefined);
+        const execResult = await executeNode(node, resolvedInputs, options.agents, options.models, worktreeCwd, emit ? (msg) => emit({ type: 'node:log', nodeId: node.id, message: msg }) : undefined, retryEvidence);
         logs.push(...execResult.logs);
         nodeOutputs.set(node.id, execResult.outputs);
 
@@ -215,7 +203,36 @@ export async function runWorkflow(
             emit?.({ type: 'node:gate', nodeId: node.id, gate: g });
           }
 
-          if (validationGates.some((g) => !g.passed && g.gate.required !== false)) {
+          const failedGates = validationGates.filter((g) => !g.passed && g.gate.required !== false);
+          if (failedGates.length > 0) {
+            // Determine max retries across all failed gates
+            const maxRetries = Math.max(...failedGates.map((g) => g.gate.maxRetries ?? 0));
+            // Check current attempt from retry evidence pattern
+            const currentAttempt = retryEvidence ? (parseInt(retryEvidence.match(/Attempt (\d+)/)?.[1] ?? '0', 10)) : 0;
+
+            if (currentAttempt < maxRetries) {
+              // Retry: collect evidence and re-execute
+              const evidence = [
+                `Attempt ${currentAttempt + 1} of ${maxRetries} failed.`,
+                'Validation gate failures:',
+                ...failedGates.map((g) => `- ${g.gate.kind}: ${g.detail ?? 'failed'}`),
+              ].join('\n');
+
+              emit?.({
+                type: 'node:retry',
+                nodeId: node.id,
+                attempt: currentAttempt + 1,
+                maxAttempts: maxRetries,
+                evidence,
+              });
+
+              await removeWorktree(repoCwd, worktreeCwd);
+
+              // Re-execute with evidence
+              await executeOneNode(node, baseBranch, evidence);
+              return;
+            }
+
             state = 'failed';
             logs.push('[failed] Validation gates did not pass');
             emit?.({ type: 'node:state', nodeId: node.id, state: 'failed', log: 'Validation gates did not pass' });
@@ -298,11 +315,9 @@ export async function runWorkflow(
         }
         logs.push('[complete]');
 
-        await ws.close();
         await removeWorktree(repoCwd, worktreeCwd);
 
       } catch (err) {
-        await ws.close();
         await removeWorktree(repoCwd, worktreeCwd);
         throw err;
       }
@@ -329,32 +344,15 @@ export async function runWorkflow(
     }
   }
 
-  // Parallel execution: process nodes in waves based on dependency readiness
-  const remaining = new Set(nodes.map((n) => n.id));
+  // Sequential execution in topological order
+  for (const node of nodes) {
+    await executeOneNode(node, previousBranch);
 
-  while (remaining.size > 0) {
-    // Find all nodes whose dependencies are satisfied
-    const ready = nodes.filter((n) => remaining.has(n.id) && isReady(n.id));
-
-    if (ready.length === 0) {
-      // No nodes are ready — remaining nodes have unsatisfied deps (failed upstream)
-      for (const nodeId of remaining) {
-        const node = nodes.find((n) => n.id === nodeId)!;
-        emit?.({ type: 'node:state', nodeId, state: 'skipped', log: 'Skipped — dependency failed' });
-        nodeResults.set(nodeId, {
-          id: nodeId, definition: node.definition, state: 'skipped', branch: '',
-          validationGates: [], reviewGates: [],
-          duration: 0, logs: ['Skipped — dependency failed'], outputs: {},
-        });
-      }
-      break;
+    // After each node completes, update previousBranch to this node's branch
+    const result = nodeResults.get(node.id);
+    if (result && (result.state === 'complete' || result.state === 'gated') && result.branch) {
+      previousBranch = result.branch;
     }
-
-    // Execute all ready nodes in parallel
-    await Promise.all(ready.map((node) => {
-      remaining.delete(node.id);
-      return executeOneNode(node);
-    }));
   }
 
   // Collect results in original node order

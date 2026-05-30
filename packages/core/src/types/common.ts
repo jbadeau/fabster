@@ -5,4 +5,5 @@ export interface Permissions {
   };
   readonly tools?: readonly string[];
   readonly network?: readonly string[];
+  readonly secrets?: readonly string[];
 }

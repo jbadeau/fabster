@@ -22,7 +22,6 @@
     "name": "core"
   },
   "dependencies": {
-    "@struktoai/mirage-core": "^0.0.1",
     "ai": "^6.0.182",
     "tslib": "^2.3.0",
     "zod": "^4.4.3"

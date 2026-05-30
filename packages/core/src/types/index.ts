@@ -12,17 +12,8 @@ export type {
 export type { AttributeValue, Requirement, Capability } from './capability.js';
 export type { BuiltinGateKind, Gate } from './gate.js';
 export type { SandboxProfileConfig, SandboxProfile } from './sandbox.js';
-export type {
-  Resource,
-  Workspace,
-  WorkspaceOptions,
-  MountMode,
-  RAMResource,
-  GitHubResourceLike,
-  S3ResourceLike,
-  WorkspaceDefinition,
-} from './workspace.js';
-export type { CommandDefinition } from './command.js';
+export type { WorkspaceDefinition } from './workspace.js';
+export type { CommandDefinition, Step, RunStep } from './command.js';
 export type { ReasoningLevel, TaskDefinition } from './task.js';
 export type {
   AgentDefinition,

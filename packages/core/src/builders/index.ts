@@ -11,7 +11,7 @@ export {
   testsPass,
 } from './gate.js';
 export { sandboxProfile } from './sandbox.js';
-export { command } from './command.js';
+export { command, run } from './command.js';
 export { task } from './task.js';
 export { agent, externalAgent, claudeCodeAgent } from './agent.js';
 export { workflow } from './workflow.js';

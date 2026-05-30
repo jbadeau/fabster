@@ -14,6 +14,7 @@ export type NodeState =
   | 'validating'
   | 'publishing'
   | 'reviewing'
+  | 'retrying'
   | 'complete'
   | 'failed'
   | 'gated'
@@ -24,6 +25,7 @@ export type WorkflowEvent =
   | { type: 'node:log'; nodeId: string; message: string }
   | { type: 'node:gate'; nodeId: string; gate: GateResult }
   | { type: 'node:mr'; nodeId: string; mr: string }
+  | { type: 'node:retry'; nodeId: string; attempt: number; maxAttempts: number; evidence: string }
   | { type: 'workflow:done'; status: 'success' | 'failed' | 'gated' };
 
 export interface WorkflowEmitter extends EventEmitter {

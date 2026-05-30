@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { tool } from 'ai';
 import { z } from 'zod';
-import { RAMResource } from '@struktoai/mirage-core';
 import {
   workspace,
   sandboxProfile,
   agent,
   task,
   command,
+  run,
   workflow,
   string,
   boolean,
@@ -69,7 +69,7 @@ describe('integration', () => {
     const createReactLibrary = command({
       name: 'create-react-library',
       purpose: 'Create a React library in the monorepo',
-      run: 'nx generate @forge/react:library --name={name} --scope={scope}',
+      steps: [run('nx generate @forge/react:library --name={name} --scope={scope}')],
       inputs: {
         name: string(),
         scope: string(),
@@ -109,13 +109,11 @@ describe('integration', () => {
     });
     expect(implementComponent.kind).toBe('task');
 
-    // Workflow with real Mirage resource
+    // Workflow
     const createDesignSystem = workflow({
       name: 'create-design-system',
       purpose: 'Create a full design system with tokens and components',
-      workspace: workspace({
-        '/repo': new RAMResource(),
-      }),
+      workspace: workspace('/repo'),
       graph: (ctx) => {
         const scaffoldTokens = ctx.run('scaffold-tokens', createReactLibrary, {
           name: 'tokens',
@@ -158,6 +156,6 @@ describe('integration', () => {
 
     expect(createDesignSystem.kind).toBe('workflow');
     expect(createDesignSystem.name).toBe('create-design-system');
-    expect(createDesignSystem.workspace.mounts['/repo'].kind).toBe('ram');
+    expect(createDesignSystem.workspace.root).toBe('/repo');
   });
 });

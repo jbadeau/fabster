@@ -1,4 +1,3 @@
-import type { Workspace } from '@struktoai/mirage-core';
 import type { AgentDefinition, ExternalAgentDefinition } from '@fabster/core';
 import type { ModelMap, ResolvedNode } from '../types.js';
 import { executeCommand } from './command-executor.js';
@@ -17,9 +16,9 @@ export async function executeNode(
   resolvedInputs: Record<string, string | number | boolean>,
   agents: readonly AgentDefinition[],
   models: ModelMap,
-  workspace: Workspace,
   cwd: string,
   onLog?: (message: string) => void,
+  retryEvidence?: string,
 ): Promise<NodeExecutionResult> {
   const logs: string[] = [];
   const outputs: Record<string, string | number | boolean> = {};
@@ -33,8 +32,7 @@ export async function executeNode(
   if (def.kind === 'command') {
     log(`Executing command: ${def.name}`);
 
-    const commands =
-      typeof def.run === 'string' ? [def.run] : [...def.run];
+    const commands = def.steps.map(s => s.script);
     for (const cmd of commands) {
       log(`> ${cmd}`);
     }
@@ -71,7 +69,7 @@ export async function executeNode(
 
     if (agent.kind === 'external-agent') {
       log(`External adapter: ${formatExternalAdapter(agent)}`);
-      const result = await executeExternalAgentTask(def, resolvedInputs, agent, cwd, onLog);
+      const result = await executeExternalAgentTask(def, resolvedInputs, agent, cwd, onLog, retryEvidence);
 
       if (result.stdout) log(result.stdout);
       if (result.stderr) log(result.stderr);
@@ -85,7 +83,7 @@ export async function executeNode(
       };
     }
 
-    const result = await executeTask(def, resolvedInputs, agent, models, workspace, cwd, onLog);
+    const result = await executeTask(def, resolvedInputs, agent, models, cwd, onLog, retryEvidence);
     if (result.text) {
       log(result.text);
     }

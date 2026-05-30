@@ -1,6 +1,32 @@
-import { nativeExec } from '@struktoai/mirage-node';
+import { spawn } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
+function nativeExec(
+  command: string,
+  options: { cwd: string; env: Record<string, string> },
+): Promise<{ exitCode: number; stdoutText: string; stderrText: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('sh', ['-c', command], {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => { stdout += chunk; });
+    child.stderr.on('data', (chunk: string) => { stderr += chunk; });
+
+    child.on('error', reject);
+    child.on('close', (code) => {
+      resolve({ exitCode: code ?? 1, stdoutText: stdout, stderrText: stderr });
+    });
+  });
+}
 
 const MISE_BIN = process.env['MISE_BIN'] ?? '/opt/nanobrew/prefix/bin/mise';
 const SYSTEM_PATHS = [

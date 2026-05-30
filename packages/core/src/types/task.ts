@@ -11,6 +11,8 @@ export interface TaskDefinition<I extends IOSchema = IOSchema, O extends IOSchem
   readonly purpose: string;
   readonly reasoning?: ReasoningLevel;
   readonly requirements: readonly Requirement[];
+  readonly instructions?: readonly string[];
+  readonly rules?: readonly string[];
   readonly inputs: I;
   readonly outputs?: O;
   readonly permissions?: Permissions;
