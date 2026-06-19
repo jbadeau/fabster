@@ -28,7 +28,7 @@ function nativeExec(
   });
 }
 
-const MISE_BIN = process.env['MISE_BIN'] ?? '/opt/nanobrew/prefix/bin/mise';
+const MISE_BIN = process.env['MISE_BIN'] ?? '/opt/homebrew/bin/mise';
 const SYSTEM_PATHS = [
   '/usr/local/bin',
   '/System/Cryptexes/App/usr/bin',

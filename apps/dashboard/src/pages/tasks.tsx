@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ClipboardList, Search } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -23,81 +24,25 @@ interface Task {
   gates: string[];
 }
 
-const TASKS: Task[] = [
-  {
-    id: 'design-openapi-spec',
-    name: 'Design OpenAPI Spec',
-    purpose: 'Analyze requirements and design an OpenAPI 3.1 specification with schemas, endpoints, error handling, and pagination',
-    reasoning: 'medium',
-    requirements: ['openapi'],
-    category: 'API',
-    gates: ['linted', 'conformant'],
-  },
-  {
-    id: 'implement-node-backend',
-    name: 'Implement Node Backend',
-    purpose: 'Read the API spec, reason about architecture, and implement Express/Fastify endpoints with validation, error handling, and middleware',
-    reasoning: 'high',
-    requirements: ['node', 'openapi'],
-    category: 'Backend',
-    gates: ['successfulBuild', 'testsPass', 'linted'],
-  },
-  {
-    id: 'implement-react-frontend',
-    name: 'Implement React Frontend',
-    purpose: 'Build React components with state management, routing, and API integration based on requirements and design specs',
-    reasoning: 'high',
-    requirements: ['react', 'nx'],
-    category: 'Frontend',
-    gates: ['successfulBuild', 'testsPass', 'linted'],
-  },
-  {
-    id: 'write-playwright-tests',
-    name: 'Write Playwright Tests',
-    purpose: 'Analyze user flows, identify critical paths, and write end-to-end Playwright tests covering happy paths and edge cases',
-    reasoning: 'medium',
-    requirements: ['playwright', 'react'],
-    category: 'Testing',
-    gates: ['testsPass', 'linted'],
-  },
-  {
-    id: 'write-react-unit-tests',
-    name: 'Write React Unit Tests',
-    purpose: 'Analyze React components, identify testable behavior, and write Vitest unit tests with React Testing Library',
-    reasoning: 'medium',
-    requirements: ['react', 'node'],
-    category: 'Testing',
-    gates: ['testsPass', 'linted'],
-  },
-  {
-    id: 'write-techdocs',
-    name: 'Write TechDocs',
-    purpose: 'Author technical documentation including README, API reference, architecture decision records, and onboarding guides',
-    reasoning: 'medium',
-    requirements: ['docs'],
-    category: 'Documentation',
-    gates: ['linted'],
-  },
-  {
-    id: 'plan-fabster-workflow',
-    name: 'Plan Fabster Workflow',
-    purpose: 'Break down a Jira feature into an executable Fabster workflow graph of tasks and commands with proper dependencies and merge request ordering',
-    reasoning: 'high',
-    requirements: ['planning', 'jira'],
-    category: 'Planning',
-    gates: ['conformant'],
-  },
-];
-
-const CATEGORIES = [...new Set(TASKS.map((t) => t.category))];
 const REASONING_LEVELS = ['low', 'medium', 'high'] as const;
-const ALL_GATES = [...new Set(TASKS.flatMap((t) => t.gates))].sort();
 
 export function TasksPage() {
+  const { data, isLoading } = trpc.listTasks.useQuery();
+  const tasks = useMemo<Task[]>(() => data?.tasks ?? [], [data]);
+
   const [search, setSearch] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedReasoning, setSelectedReasoning] = useState<string[]>([]);
   const [selectedGates, setSelectedGates] = useState<string[]>([]);
+
+  const CATEGORIES = useMemo(
+    () => [...new Set(tasks.map((t) => t.category))].sort(),
+    [tasks],
+  );
+  const ALL_GATES = useMemo(
+    () => [...new Set(tasks.flatMap((t) => t.gates))].sort(),
+    [tasks],
+  );
 
   const toggleCategory = (cat: string) => {
     setSelectedCategories((prev) =>
@@ -117,7 +62,7 @@ export function TasksPage() {
     );
   };
 
-  const filtered = TASKS.filter((task) => {
+  const filtered = tasks.filter((task) => {
     if (search && !task.name.toLowerCase().includes(search.toLowerCase()) && !task.purpose.toLowerCase().includes(search.toLowerCase())) {
       return false;
     }
@@ -222,7 +167,9 @@ export function TasksPage() {
       <div className="flex-1 overflow-y-auto p-4 lg:p-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {filtered.length} task{filtered.length !== 1 ? 's' : ''}
+            {isLoading
+              ? 'Loading tasks…'
+              : `${filtered.length} task${filtered.length !== 1 ? 's' : ''}`}
           </p>
         </div>
 
@@ -262,12 +209,14 @@ export function TasksPage() {
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {!isLoading && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <ClipboardList className="h-12 w-12 text-muted-foreground/50" />
             <h3 className="mt-4 text-lg font-semibold">No tasks found</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Try adjusting your filters
+              {tasks.length === 0
+                ? 'No plugins with tasks are installed'
+                : 'Try adjusting your filters'}
             </p>
           </div>
         )}

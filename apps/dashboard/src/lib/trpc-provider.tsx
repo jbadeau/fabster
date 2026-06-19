@@ -10,7 +10,7 @@ function getDaemonUrl(): string {
 
 function getDaemonWsUrl(): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}`;
+  return `${protocol}//${window.location.host}/trpc`;
 }
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {

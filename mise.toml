@@ -1,6 +1,14 @@
 [tools]
 node = "latest"
 
+[tasks.daemon]
+description = "Start the fabster daemon (tRPC API + WebSocket) on :3456"
+run = "npx tsx --conditions=@fabster/source packages/cli/src/bin/fabster.ts --no-open"
+
+[tasks.dashboard]
+description = "Start the dashboard Vite dev server on :4200 (proxies /trpc to :3456)"
+run = "npx nx dev dashboard"
+
 [tasks.dev]
 description = "Start fabster daemon and dashboard"
-run = "npx tsx packages/cli/src/bin/fabster.ts"
+depends = ["daemon", "dashboard"]

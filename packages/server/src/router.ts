@@ -12,6 +12,7 @@ import {
   createWorkflowEmitter,
   extractNodes,
 } from '@fabster/runtime';
+import { loadCatalog } from './catalog.js';
 import type {
   WorkflowEvent,
   WorkflowEmitter,
@@ -154,6 +155,18 @@ export const appRouter = t.router({
     }
 
     return { workflows };
+  }),
+
+  // List tasks discovered from installed @fabster plugin packages
+  listTasks: t.procedure.query(async () => {
+    const { tasks } = await loadCatalog();
+    return { tasks };
+  }),
+
+  // List commands discovered from installed @fabster plugin packages
+  listCommands: t.procedure.query(async () => {
+    const { commands } = await loadCatalog();
+    return { commands };
   }),
 
   // List active runs

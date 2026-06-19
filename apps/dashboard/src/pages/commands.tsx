@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Terminal, Search } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -22,112 +23,22 @@ interface Command {
   tools: string[];
 }
 
-const COMMANDS: Command[] = [
-  {
-    id: 'generate-nx-workspace',
-    name: 'Generate Nx Workspace',
-    description: 'Create a new Nx monorepo with standard tooling and presets',
-    run: 'npx create-nx-workspace {name} --preset=apps --ci=skip',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'add-nx-plugin',
-    name: 'Add Nx Plugin',
-    description: 'Install and configure an Nx plugin in the workspace',
-    run: 'npx nx add {plugin}',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'generate-nx-react-site',
-    name: 'Generate Nx React Site',
-    description: 'Scaffold a new React application with Vite and Vitest',
-    run: 'npx nx g @nx/react:app {name} --directory={directory} --bundler=vite',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'generate-nx-node-service',
-    name: 'Generate Nx Node Service',
-    description: 'Scaffold a new Node.js service application',
-    run: 'npx nx g @nx/node:app {name} --directory={directory}',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'generate-nx-spring-boot-service',
-    name: 'Generate Nx Spring Boot Service',
-    description: 'Scaffold a new Spring Boot application with Maven',
-    run: 'npx nx g @jnxplus/nx-maven:application {name} --directory={directory}',
-    category: 'Nx',
-    tools: ['node', 'npm', 'java@21'],
-  },
-  {
-    id: 'generate-nx-library',
-    name: 'Generate Nx Library',
-    description: 'Scaffold a new shared library project',
-    run: 'npx nx g @nx/js:library {name} --directory={directory}',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'generate-openapi-client',
-    name: 'Generate OpenAPI Client',
-    description: 'Generate a typed TypeScript client from an OpenAPI spec',
-    run: 'npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir}',
-    category: 'OpenAPI',
-    tools: ['node', 'npm', 'java@21'],
-  },
-  {
-    id: 'run-nx-build',
-    name: 'Run Nx Build',
-    description: 'Build affected projects in the workspace',
-    run: 'npx nx affected -t build',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'run-nx-lint',
-    name: 'Run Nx Lint',
-    description: 'Lint affected projects in the workspace',
-    run: 'npx nx affected -t lint',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'run-nx-test',
-    name: 'Run Nx Test',
-    description: 'Run tests for affected projects in the workspace',
-    run: 'npx nx affected -t test',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'run-nx-conformance',
-    name: 'Run Nx Conformance',
-    description: 'Check workspace conformance rules and architectural constraints',
-    run: 'npx nx conformance',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-  {
-    id: 'run-nx-e2e',
-    name: 'Run Nx E2E',
-    description: 'Run end-to-end Playwright tests for affected projects',
-    run: 'npx nx affected -t e2e',
-    category: 'Nx',
-    tools: ['node', 'npm'],
-  },
-];
-
-const CATEGORIES = [...new Set(COMMANDS.map((c) => c.category))];
-const ALL_TOOLS = [...new Set(COMMANDS.flatMap((c) => c.tools))].sort();
-
 export function CommandsPage() {
+  const { data, isLoading } = trpc.listCommands.useQuery();
+  const commands = useMemo<Command[]>(() => data?.commands ?? [], [data]);
+
   const [search, setSearch] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+
+  const CATEGORIES = useMemo(
+    () => [...new Set(commands.map((c) => c.category))].sort(),
+    [commands],
+  );
+  const ALL_TOOLS = useMemo(
+    () => [...new Set(commands.flatMap((c) => c.tools))].sort(),
+    [commands],
+  );
 
   const toggleCategory = (cat: string) => {
     setSelectedCategories((prev) =>
@@ -141,7 +52,7 @@ export function CommandsPage() {
     );
   };
 
-  const filtered = COMMANDS.filter((cmd) => {
+  const filtered = commands.filter((cmd) => {
     if (search && !cmd.name.toLowerCase().includes(search.toLowerCase()) && !cmd.description.toLowerCase().includes(search.toLowerCase())) {
       return false;
     }
@@ -225,7 +136,9 @@ export function CommandsPage() {
       <div className="flex-1 overflow-y-auto p-4 lg:p-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {filtered.length} command{filtered.length !== 1 ? 's' : ''}
+            {isLoading
+              ? 'Loading commands…'
+              : `${filtered.length} command${filtered.length !== 1 ? 's' : ''}`}
           </p>
         </div>
 
@@ -260,12 +173,14 @@ export function CommandsPage() {
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {!isLoading && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Terminal className="h-12 w-12 text-muted-foreground/50" />
             <h3 className="mt-4 text-lg font-semibold">No commands found</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Try adjusting your filters
+              {commands.length === 0
+                ? 'No plugins with commands are installed'
+                : 'Try adjusting your filters'}
             </p>
           </div>
         )}

@@ -86,8 +86,9 @@ export function startServer(options: ServerOptions = {}) {
 
   server.listen(port, host);
 
-  // WebSocket server for subscriptions
-  const wss = new WebSocketServer({ server });
+  // WebSocket server for subscriptions. Mounted on the /trpc path so the
+  // dashboard dev server's proxy (which only forwards /trpc) can reach it.
+  const wss = new WebSocketServer({ server, path: '/trpc' });
   const wssHandler = applyWSSHandler({
     wss,
     router: appRouter,
