@@ -7,7 +7,19 @@ export interface RunStep {
   readonly script: string;
 }
 
-export type Step = RunStep;
+/**
+ * Deep-merge a JSON object into a file in the worktree — declarative,
+ * in-process, and loggable as a diff, for the common case of patching
+ * generated config (tsconfig, package.json) without shelling out to a
+ * script that has to be trusted to run inside the node's own sandbox.
+ */
+export interface JsonMergeStep {
+  readonly _tag: 'jsonMerge';
+  readonly path: string;
+  readonly patch: Readonly<Record<string, unknown>>;
+}
+
+export type Step = RunStep | JsonMergeStep;
 
 export interface CommandDefinition<I extends IOSchema = IOSchema, O extends IOSchema = IOSchema> {
   readonly kind: 'command';

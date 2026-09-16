@@ -1,10 +1,14 @@
-import type { CommandDefinition, Step, RunStep } from '../types/command.js';
+import type { CommandDefinition, Step, RunStep, JsonMergeStep } from '../types/command.js';
 import type { Gate } from '../types/gate.js';
 import type { IOSchema } from '../types/io.js';
 import type { Permissions } from '../types/common.js';
 
 export function run(script: string): RunStep {
   return Object.freeze({ _tag: 'run' as const, script });
+}
+
+export function jsonMerge(path: string, patch: Record<string, unknown>): JsonMergeStep {
+  return Object.freeze({ _tag: 'jsonMerge' as const, path, patch: Object.freeze(patch) });
 }
 
 interface CommandConfig<I extends IOSchema, O extends IOSchema> {

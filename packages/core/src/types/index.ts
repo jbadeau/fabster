@@ -14,7 +14,7 @@ export type { BuiltinGateKind, Gate } from './gate.js';
 export type { Delivery, MergeRequestDelivery } from './delivery.js';
 export type { SandboxProfileConfig, SandboxProfile } from './sandbox.js';
 export type { WorkspaceDefinition } from './workspace.js';
-export type { CommandDefinition, Step, RunStep } from './command.js';
+export type { CommandDefinition, Step, RunStep, JsonMergeStep } from './command.js';
 export type { ReasoningLevel, TaskDefinition } from './task.js';
 export type { SkillDefinition } from './skill.js';
 export type {

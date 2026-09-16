@@ -16,13 +16,13 @@
  *   npx tsx examples/todomvc/workflow.ts
  */
 
-import { fileURLToPath } from 'node:url';
 import {
   workspace,
   command,
   workflow,
   string,
   run,
+  jsonMerge,
   require,
   task,
   successfulBuild,
@@ -37,10 +37,6 @@ import {
   generateApp,
   generateLibrary,
 } from '@fabster/nx';
-
-const patchApiClientTsconfig = fileURLToPath(
-  new URL('./patch-api-client-tsconfig.mjs', import.meta.url),
-);
 
 // -- Tasks specific to this workflow --
 
@@ -102,12 +98,23 @@ const generateApiClient = command({
   steps: [
     run('npm install'),
     run('npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --skip-validate-spec --additional-properties=typescriptThreePlus=true,supportsES6=true,importFileExtension=.js'),
-    run('node {patchScript}'),
+    // The generated client is a fetch-based browser API client, so it needs
+    // DOM types (RequestCredentials, Response, ...) that this workspace's
+    // tsconfig.base.json doesn't include by default. It also hits two
+    // long-standing typescript-fetch template bugs with no generator config
+    // to fix them: an unused "mapValues"/"...ToJSON" import in some model
+    // files, and a missing "override" modifier on a class field that
+    // shadows Error.cause. Module resolution itself needs no override — the
+    // generator's own importFileExtension=.js option above already produces
+    // imports compatible with the workspace's "nodenext" setting.
+    jsonMerge('{libDir}/tsconfig.lib.json', {
+      compilerOptions: { lib: ['es2022', 'dom'], noUnusedLocals: false, noImplicitOverride: false },
+    }),
   ],
   inputs: {
     specPath: string('Path to the OpenAPI spec file'),
     outputDir: string('Output directory for the generated client'),
-    patchScript: string('Path to the script relaxing the generated client tsconfig for nodenext compatibility'),
+    libDir: string('Root directory of the generated client library, for patching its tsconfig'),
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
@@ -230,7 +237,7 @@ export default workflow({
     const client = ctx.run('generate-api-client', generateApiClient, {
       specPath: spec.output('specPath'),
       outputDir: 'packages/api-client/src/generated',
-      patchScript: patchApiClientTsconfig,
+      libDir: 'packages/api-client',
     }, { dependsOn: [clientLib] });
 
     // Implement backend (needs backend app + spec)

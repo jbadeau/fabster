@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { command, run } from '../builders/command.js';
+import { command, jsonMerge, run } from '../builders/command.js';
 import { boolean, string } from '../builders/io.js';
 import { linted, successfulBuild } from '../builders/gate.js';
 
@@ -41,5 +41,26 @@ describe('command', () => {
       'npm install',
       'npm run build',
     ]);
+  });
+
+  it('accepts a jsonMerge step alongside run steps', () => {
+    const cmd = command({
+      name: 'patch-tsconfig',
+      purpose: 'Relax the generated client tsconfig',
+      steps: [
+        run('npm install'),
+        jsonMerge('{libDir}/tsconfig.lib.json', {
+          compilerOptions: { lib: ['es2022', 'dom'] },
+        }),
+      ],
+      inputs: { libDir: string() },
+    });
+
+    expect(cmd.steps[0]._tag).toBe('run');
+    expect(cmd.steps[1]).toEqual({
+      _tag: 'jsonMerge',
+      path: '{libDir}/tsconfig.lib.json',
+      patch: { compilerOptions: { lib: ['es2022', 'dom'] } },
+    });
   });
 });
