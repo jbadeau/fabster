@@ -1,0 +1,64 @@
+{
+  "name": "@fabster/source",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {},
+  "private": true,
+  "devDependencies": {
+    "@ai-sdk/openai": "^3.0.63",
+    "@nx/js": "22.7.0",
+    "@nx/react": "^22.7.0",
+    "@nx/vite": "^22.7.0",
+    "@nx/vitest": "22.7.0",
+    "@nx/web": "22.7.0",
+    "@swc-node/register": "1.11.1",
+    "@swc/core": "1.15.8",
+    "@swc/helpers": "0.5.18",
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/react": "16.3.0",
+    "@types/node": "20.19.9",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "@vitest/coverage-v8": "~4.1.0",
+    "@vitest/ui": "~4.1.0",
+    "jiti": "2.4.2",
+    "jsdom": "~22.1.0",
+    "nx": "22.7.0",
+    "prettier": "^3.8.1",
+    "tslib": "^2.3.0",
+    "tsx": "^4.22.0",
+    "typescript": "~5.9.2",
+    "verdaccio": "^6.3.2",
+    "vite": "^8.0.0",
+    "vitest": "~4.1.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "plugins/*",
+    "apps/*"
+  ],
+  "nx": {
+    "includedScripts": [],
+    "targets": {
+      "local-registry": {
+        "executor": "@nx/js:verdaccio",
+        "options": {
+          "port": 4873,
+          "config": ".verdaccio/config.yml",
+          "storage": "tmp/local-registry/storage"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.2.7"
+  },
+  "description": "Verification-first workflow engine: a workflow is a graph of externally verified effects",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jbadeau/fabster.git"
+  }
+}

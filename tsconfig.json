@@ -1,0 +1,40 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/core"
+    },
+    {
+      "path": "./packages/runtime"
+    },
+    {
+      "path": "./plugins/nx"
+    },
+    {
+      "path": "./packages/cli"
+    },
+    {
+      "path": "./plugins/openapi"
+    },
+    {
+      "path": "./apps/dashboard"
+    },
+    {
+      "path": "./packages/server"
+    },
+    {
+      "path": "./packages/engine"
+    },
+    {
+      "path": "./apps/support"
+    },
+    {
+      "path": "./plugins/webex"
+    }
+  ]
+}

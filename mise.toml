@@ -1,0 +1,32 @@
+[tools]
+node = "latest"
+restate = "latest"
+restate-server = "latest"
+
+[tasks.daemon]
+description = "Start the fabster daemon (tRPC API + WebSocket) on :3456"
+run = "npx tsx --tsconfig packages/cli/tsconfig.lib.json --conditions=@fabster/source packages/cli/src/bin/fabster.tsx daemon --no-open"
+
+[tasks.tui]
+description = "Open the fabster TUI (interactive menu)"
+run = "npx tsx --tsconfig packages/cli/tsconfig.lib.json --conditions=@fabster/source packages/cli/src/bin/fabster.tsx"
+
+[tasks.fab]
+description = "Run the fabster CLI — pass args after --, e.g. `mise run fab -- catalog`"
+run = "npx tsx --tsconfig packages/cli/tsconfig.lib.json --conditions=@fabster/source packages/cli/src/bin/fabster.tsx"
+
+[tasks.dashboard]
+description = "Start the dashboard Vite dev server on :4200 (proxies /trpc to :3456)"
+run = "npx nx dev dashboard"
+
+[tasks.dev]
+description = "Start fabster daemon and dashboard"
+depends = ["daemon", "dashboard"]
+
+[tasks.restate]
+description = "Start the Restate dev server (durable engine)"
+run = "restate-server"
+
+[tasks.support]
+description = "Serve the support + fabrication services on :9080 (register with `restate deployments register http://localhost:9080`)"
+run = "npx tsx --tsconfig apps/support/tsconfig.lib.json --conditions=@fabster/source apps/support/src/main.ts"
