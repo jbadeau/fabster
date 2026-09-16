@@ -106,10 +106,18 @@ export async function addWorktree(
   const worktreeDir = path.join(repoCwd, '.fabster-worktrees', nodeId);
 
   // A crashed prior attempt may have left a stale worktree — clear it so
-  // re-execution starts clean from the run branch.
+  // re-execution starts clean from the run branch. Ignore failure here:
+  // there may be nothing to remove.
   await miseExec(`git worktree remove "${worktreeDir}" --force`, repoCwd);
 
-  await miseExec(`git worktree add "${worktreeDir}" ${branch}`, repoCwd);
+  const add = await miseExec(`git worktree add "${worktreeDir}" ${branch}`, repoCwd);
+  if (add.exitCode !== 0) {
+    // A silent failure here leaves worktreeDir pointing at nothing (or a
+    // stale directory) — the node would appear to run, then commitChanges'
+    // "git status" would fail too and get misread as "nothing to commit",
+    // discarding all of the node's work without a trace.
+    throw new Error(`git worktree add failed: ${add.stderr || add.stdout}`);
+  }
 
   const { existsSync, copyFileSync } = await import('node:fs');
   for (const file of ['mise.local.toml', '.mise.local.toml']) {
@@ -129,16 +137,44 @@ export async function commitChanges(
   worktreePath: string,
   message: string,
 ): Promise<string | null> {
+  const { mkdtemp, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+
   await ensureGitignore(worktreePath);
 
   const status = await miseExec('git status --porcelain', worktreePath);
+  if (status.exitCode !== 0) {
+    // A broken worktree (e.g. a bad or missing worktree registration) makes
+    // "git status" fail with empty stdout — indistinguishable from "clean"
+    // unless the exit code is checked. Misreading it as clean silently
+    // discards the node's work instead of failing the run.
+    throw new Error(`git status failed in ${worktreePath}: ${status.stderr || status.stdout}`);
+  }
 
   if (status.stdout.trim() === '') {
     return null;
   }
 
-  await miseExec('git add -A -- .', worktreePath);
-  await miseExec(`git commit -m "${message}"`, worktreePath);
+  const add = await miseExec('git add -A -- .', worktreePath);
+  if (add.exitCode !== 0) {
+    throw new Error(`git add failed: ${add.stderr || add.stdout}`);
+  }
+
+  // The message may contain arbitrary content (quotes, $refs, newlines) —
+  // pass it via -F, never through shell interpolation.
+  const msgDir = await mkdtemp(path.join(tmpdir(), 'fabster-commit-'));
+  const msgFile = path.join(msgDir, 'message');
+  try {
+    await writeFile(msgFile, message);
+    const commit = await miseExec(`git commit -F "${msgFile}"`, worktreePath);
+    if (commit.exitCode !== 0) {
+      // The commit is the engine's seal — a silent failure here would
+      // discard verified work when the worktree is removed.
+      throw new Error(`git commit failed: ${commit.stderr || commit.stdout}`);
+    }
+  } finally {
+    await rm(msgDir, { recursive: true, force: true });
+  }
 
   const result = await miseExec('git rev-parse HEAD', worktreePath);
   return result.stdout.trim();

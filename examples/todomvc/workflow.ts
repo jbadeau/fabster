@@ -2,8 +2,7 @@
  * TodoMVC Workflow
  *
  * Creates a full-stack TodoMVC application in an Nx monorepo:
- * 1. Initialize Nx workspace
- * 2. Add React and Node plugins
+ * 1. Add React and Node plugins (workspace scaffolded by run.ts via create-nx-workspace)
  * 3. Generate OpenAPI spec library
  * 4. Agent writes the OpenAPI spec
  * 5. Generate API client library
@@ -17,6 +16,7 @@
  *   npx tsx examples/todomvc/workflow.ts
  */
 
+import { fileURLToPath } from 'node:url';
 import {
   workspace,
   command,
@@ -33,11 +33,14 @@ import {
   provide,
 } from '@fabster/core';
 import {
-  initWorkspace,
   addPlugin,
   generateApp,
   generateLibrary,
 } from '@fabster/nx';
+
+const patchApiClientTsconfig = fileURLToPath(
+  new URL('./patch-api-client-tsconfig.mjs', import.meta.url),
+);
 
 // -- Tasks specific to this workflow --
 
@@ -66,8 +69,16 @@ IMPORTANT: Use correct OpenAPI structure. Every response and request body must h
 Define a Todo schema in components/schemas with: id (string), title (string), completed (boolean), createdAt (string).
 Define endpoints: GET /todos, POST /todos, PUT /todos/{id}, DELETE /todos/{id}.
 
-Call writeFile twice — once for each file. Start now.`,
+The spec must pass "npx @redocly/cli lint" with the recommended ruleset:
+- a servers block (e.g. url: http://localhost:3000)
+- info.description and info.license
+- every operation has an operationId and a summary
+- every path response includes a 4xx error response where applicable
+- a top-level "security: []" declaring the API takes no auth (this API is unauthenticated) — the recommended ruleset fails otherwise with "Every operation should have security defined on it or on the root level."
+
+Call writeFile twice — once for each file. Then write specPath to .fabster/outputs.json as instructed below — the run fails without it, even if the spec itself is valid. Start now.`,
   reasoning: 'medium',
+  retries: 1,
   requirements: [
     require('agent.skill', { name: 'openapi' }),
   ],
@@ -90,11 +101,13 @@ const generateApiClient = command({
   purpose: 'Generate a TypeScript fetch API client from an OpenAPI spec using openapi-generator',
   steps: [
     run('npm install'),
-    run('npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --skip-validate-spec --additional-properties=typescriptThreePlus=true,supportsES6=true'),
+    run('npx @openapitools/openapi-generator-cli generate -i {specPath} -g typescript-fetch -o {outputDir} --skip-validate-spec --additional-properties=typescriptThreePlus=true,supportsES6=true,importFileExtension=.js'),
+    run('node {patchScript}'),
   ],
   inputs: {
     specPath: string('Path to the OpenAPI spec file'),
     outputDir: string('Output directory for the generated client'),
+    patchScript: string('Path to the script relaxing the generated client tsconfig for nodenext compatibility'),
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
@@ -178,19 +191,15 @@ export default workflow({
   workspace: workspace(process.env['FABSTER_DEMO_REPO'] ?? '/tmp/fabster-todomvc-demo'),
   delivery: mergeRequest(),
   graph: (ctx) => {
-    // Initialize Nx workspace
-    const init = ctx.run('init-workspace', initWorkspace, {
-      name: 'todomvc',
-    });
-
-    // Parallel: install plugins (independent of each other)
+    // The workspace itself is scaffolded with raw create-nx-workspace
+    // (see run.ts) — fabrication starts from adding plugins.
     const addReact = ctx.run('add-react', addPlugin, {
       plugin: '@nx/react',
-    }, { dependsOn: [init] });
+    });
 
     const addNode = ctx.run('add-node', addPlugin, {
       plugin: '@nx/node',
-    }, { dependsOn: [init] });
+    });
 
     // Left branch: scaffold frontend app (needs react plugin)
     const frontendApp = ctx.run('generate-frontend', generateApp, {
@@ -221,6 +230,7 @@ export default workflow({
     const client = ctx.run('generate-api-client', generateApiClient, {
       specPath: spec.output('specPath'),
       outputDir: 'packages/api-client/src/generated',
+      patchScript: patchApiClientTsconfig,
     }, { dependsOn: [clientLib] });
 
     // Implement backend (needs backend app + spec)

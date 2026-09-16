@@ -200,7 +200,7 @@ export async function runNode(params: NodeRunParams): Promise<NodeRunOutcome> {
 
       // === COMMIT: the engine's seal that verification passed ===
       setState('publishing');
-      const sha = await commitChanges(worktreeCwd, `fabster: ${def.name} — ${def.purpose}`);
+      const sha = await commitChanges(worktreeCwd, `fabster: ${def.name}\n\n${def.purpose}`);
       log(sha ? `[publishing] Committed: ${sha}` : '[publishing] No changes to commit');
 
       setState('complete');
