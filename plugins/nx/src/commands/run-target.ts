@@ -11,6 +11,7 @@ export const runTarget = command({
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
+    network: ['registry.npmjs.org'],
     tools: ['node', 'npm'],
   },
 });

@@ -87,6 +87,7 @@ Call writeFile twice — once for each file. Then write specPath to .fabster/out
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
+    network: ['registry.npmjs.org', 'api.anthropic.com'],
     tools: ['node', 'npm'],
   },
   post: [gate('openapi-lint', { description: 'OpenAPI spec lints cleanly', check: 'npx --yes @redocly/cli lint {specPath}' })],
@@ -118,6 +119,7 @@ const generateApiClient = command({
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
+    network: ['registry.npmjs.org'],
     tools: ['node@22', 'npm', 'java@21'],
   },
   post: [successfulBuild()],
@@ -152,6 +154,7 @@ After writing files, run: npx nx build api`,
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
+    network: ['registry.npmjs.org', 'api.anthropic.com'],
     tools: ['node', 'npm'],
   },
   post: [successfulBuild(), linted()],
@@ -185,6 +188,7 @@ After writing files, run: npx nx build web`,
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
+    network: ['registry.npmjs.org', 'api.anthropic.com'],
     tools: ['node', 'npm'],
   },
   post: [successfulBuild(), linted()],
@@ -213,6 +217,11 @@ export default workflow({
       generator: '@nx/react:app',
       name: 'web',
       directory: 'apps/web',
+      // No e2e suite for this demo, and the default e2e runner's postinstall
+      // (playwright install) needs to read ~/.npmrc, which nono permanently
+      // protects as a possible credentials file — a real fix belongs here
+      // (skip the unneeded setup), not in loosening that protection.
+      extraArgs: '--e2eTestRunner=none',
     }, { dependsOn: [addReact] });
 
     // Right branch: API spec + backend (needs node plugin)
@@ -225,6 +234,7 @@ export default workflow({
       generator: '@nx/node:app',
       name: 'api',
       directory: 'apps/api',
+      extraArgs: '',
     }, { dependsOn: [addNode] });
 
     // API client chain (needs spec)

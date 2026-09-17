@@ -10,6 +10,7 @@ export const addPlugin = command({
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
+    network: ['registry.npmjs.org'],
     tools: ['node', 'npm'],
   },
 });

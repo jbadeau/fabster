@@ -12,6 +12,7 @@ export const generateLibrary = command({
   },
   permissions: {
     fs: { read: ['/repo/**'], write: ['/repo/**'] },
+    network: ['registry.npmjs.org'],
     tools: ['node', 'npm'],
   },
   post: [successfulBuild(), linted()],
