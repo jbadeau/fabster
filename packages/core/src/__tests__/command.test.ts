@@ -8,7 +8,9 @@ describe('command', () => {
     const cmd = command({
       name: 'create-react-library',
       purpose: 'Create a React library in the monorepo',
-      steps: [run('nx generate @forge/react:library --name={name} --scope={scope}')],
+      steps: [
+        run('nx generate @forge/react:library --name={name} --scope={scope}'),
+      ],
       inputs: {
         name: string(),
         scope: string(),
@@ -37,7 +39,7 @@ describe('command', () => {
       inputs: {},
     });
 
-    expect(cmd.steps.map((s) => s.script)).toEqual([
+    expect(cmd.steps.map((s) => (s._tag === 'run' ? s.script : s))).toEqual([
       'npm install',
       'npm run build',
     ]);
@@ -75,14 +77,15 @@ describe('command', () => {
     const cmd = command({
       name: 'generate-app',
       purpose: 'Generate an app',
-      steps: [
-        use(npmInstall, {}),
-        run('npx nx generate {generator}'),
-      ],
+      steps: [use(npmInstall, {}), run('npx nx generate {generator}')],
       inputs: { generator: string() },
     });
 
-    expect(cmd.steps[0]).toEqual({ _tag: 'use', command: npmInstall, inputs: {} });
+    expect(cmd.steps[0]).toEqual({
+      _tag: 'use',
+      command: npmInstall,
+      inputs: {},
+    });
     expect(cmd.steps[1]._tag).toBe('run');
   });
 });

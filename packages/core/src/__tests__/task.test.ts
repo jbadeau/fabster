@@ -48,13 +48,16 @@ describe('task', () => {
   });
 
   it('rejects a task that omits post-gates entirely', () => {
-    expect(() =>
-      task({
-        name: 'unverified',
-        purpose: 'A task without any post-gate',
-        requirements: [],
-        inputs: {},
-      }),
-    ).toThrow(/at least one post-gate/);
+    // `post` is required at the type level too — this covers a caller that
+    // bypasses that (plain JS, or data assembled dynamically) rather than
+    // one TypeScript itself would already stop.
+    const config = {
+      name: 'unverified',
+      purpose: 'A task without any post-gate',
+      requirements: [],
+      inputs: {},
+    } as unknown as Parameters<typeof task>[0];
+
+    expect(() => task(config)).toThrow(/at least one post-gate/);
   });
 });
