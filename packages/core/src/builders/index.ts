@@ -7,6 +7,7 @@ export {
   formatted,
   linted,
   testsPass,
+  conformant,
 } from './gate.js';
 export { mergeRequest } from './delivery.js';
 export { sandboxProfile } from './sandbox.js';

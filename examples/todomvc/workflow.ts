@@ -27,6 +27,7 @@ import {
   task,
   successfulBuild,
   linted,
+  conformant,
   mergeRequest,
   gate,
   claudeCodeAgent,
@@ -141,9 +142,13 @@ The server should:
 - Generate UUIDs for todo IDs
 - Return proper HTTP status codes (200, 201, 204, 404)
 - Handle JSON request/response
+- PUT /todos/{id} is a PARTIAL update: a request with only {"completed": true}
+  (what a "toggle complete" UI sends) must succeed and leave the title
+  unchanged. Do not require every field to be present on every PUT.
 
 After writing files, run: npx nx build api`,
   reasoning: 'high',
+  retries: 1,
   requirements: [
     require('agent.skill', { name: 'code-generation', language: 'typescript' }),
     require('agent.skill', { name: 'testing' }),
@@ -157,7 +162,24 @@ After writing files, run: npx nx build api`,
     network: ['registry.npmjs.org', 'api.anthropic.com'],
     tools: ['node', 'npm'],
   },
-  post: [successfulBuild(), linted()],
+  post: [
+    successfulBuild(),
+    linted(),
+    // Build + lint check that the code compiles — neither checks that the
+    // API actually behaves correctly. This is the gate that would have
+    // caught, on the very first run of this workflow, a backend that
+    // passed both of the above and still 400'd on a partial PUT.
+    conformant({
+      start: 'node apps/api/dist/main.js',
+      baseUrl: 'http://localhost:3000',
+      readyPath: '/todos',
+      requests: [
+        { method: 'POST', path: '/todos', body: { title: 'conformance check' }, expectStatus: 201, capture: 'created' },
+        { method: 'PUT', path: '/todos/{created.id}', body: { completed: true }, expectStatus: 200, expectBody: { completed: true, title: 'conformance check' } },
+        { method: 'DELETE', path: '/todos/{created.id}', expectStatus: 204 },
+      ],
+    }),
+  ],
 });
 
 const implementFrontend = task({

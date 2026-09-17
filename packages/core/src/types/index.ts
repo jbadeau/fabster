@@ -10,7 +10,7 @@ export type {
   IOValues,
 } from './io.js';
 export type { AttributeValue, Requirement, Capability } from './capability.js';
-export type { BuiltinGateKind, Gate } from './gate.js';
+export type { BuiltinGateKind, Gate, ConformanceConfig, ConformanceRequest } from './gate.js';
 export type { Delivery, MergeRequestDelivery } from './delivery.js';
 export type { SandboxProfileConfig, SandboxProfile } from './sandbox.js';
 export type { WorkspaceDefinition } from './workspace.js';
