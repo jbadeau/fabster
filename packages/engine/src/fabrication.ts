@@ -59,7 +59,9 @@ export const fabrication = restate.workflow({
 
         const resolvedInputs = resolveInputs(node.inputs, outputsByNode);
         const outcome = await ctx.run(`node-${node.id}`, () =>
-          runNode({ node, resolvedInputs, repoCwd, runBranch, agents }),
+          // The production engine always enforces the sandbox — there is no
+          // trusted-local-demo carve-out here the way examples/todomvc has.
+          runNode({ node, resolvedInputs, repoCwd, runBranch, agents, sandbox: 'required' }),
         );
 
         results.push(outcome.result);

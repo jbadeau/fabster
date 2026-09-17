@@ -11,7 +11,20 @@ import type {
   Gate,
   IOSchema,
   Permissions,
+  Step,
 } from '@fabster/core';
+
+/** A human-readable rendering of one step, for the catalog/UI display only. */
+export function describeStep(step: Step): string {
+  switch (step._tag) {
+    case 'run':
+      return step.script;
+    case 'jsonMerge':
+      return `merge ${step.path}`;
+    case 'use':
+      return `use ${step.command.name}`;
+  }
+}
 
 // Framework packages under the @fabster scope that are NOT plugins.
 const FRAMEWORK_PACKAGES = new Set(['core', 'runtime', 'server', 'cli', 'dashboard']);
@@ -337,11 +350,11 @@ export async function loadCatalog(): Promise<{
           slug: value.name,
           name: value.name,
           description: value.purpose,
-          run: value.steps.map((s) => s.script).join(' && '),
+          run: value.steps.map(describeStep).join(' && '),
           category,
           provider,
           tools: value.permissions?.tools ? [...value.permissions.tools] : [],
-          steps: value.steps.map((s) => s.script),
+          steps: value.steps.map(describeStep),
           inputs: serializeIO(value.inputs),
           outputs: serializeIO(value.outputs),
           gates: gateLabels([...(value.pre ?? []), ...(value.post ?? [])]),

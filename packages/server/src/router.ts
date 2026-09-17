@@ -12,7 +12,7 @@ import {
   createWorkflowEmitter,
   extractNodes,
 } from '@fabster/runtime';
-import { loadCatalog } from './catalog.js';
+import { loadCatalog, describeStep } from './catalog.js';
 import type {
   WorkflowEvent,
   WorkflowEmitter,
@@ -296,7 +296,7 @@ export const appRouter = t.router({
         };
 
         if (def.kind === 'command') {
-          base.steps = def.steps.map((s) => s.script);
+          base.steps = def.steps.map(describeStep);
         }
         if (def.kind === 'task') {
           base.reasoning = def.reasoning;
