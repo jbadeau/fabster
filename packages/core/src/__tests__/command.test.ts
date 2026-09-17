@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { command, jsonMerge, run } from '../builders/command.js';
+import { command, jsonMerge, run, use } from '../builders/command.js';
 import { boolean, string } from '../builders/io.js';
 import { linted, successfulBuild } from '../builders/gate.js';
 
@@ -62,5 +62,27 @@ describe('command', () => {
       path: '{libDir}/tsconfig.lib.json',
       patch: { compilerOptions: { lib: ['es2022', 'dom'] } },
     });
+  });
+
+  it('inlines another command via use()', () => {
+    const npmInstall = command({
+      name: 'npm-install',
+      purpose: 'Install npm dependencies',
+      steps: [run('npm install')],
+      inputs: {},
+    });
+
+    const cmd = command({
+      name: 'generate-app',
+      purpose: 'Generate an app',
+      steps: [
+        use(npmInstall, {}),
+        run('npx nx generate {generator}'),
+      ],
+      inputs: { generator: string() },
+    });
+
+    expect(cmd.steps[0]).toEqual({ _tag: 'use', command: npmInstall, inputs: {} });
+    expect(cmd.steps[1]._tag).toBe('run');
   });
 });

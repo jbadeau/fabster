@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { command, jsonMerge, run, string } from '@fabster/core';
+import { command, jsonMerge, run, string, use } from '@fabster/core';
 import { commandEffect } from '../effects/command.js';
 
 describe('commandEffect — jsonMerge step', () => {
@@ -75,6 +75,82 @@ describe('commandEffect — jsonMerge step', () => {
 
       expect(result.executed).toBe(true);
       expect(result.logs.some((l) => l.includes('merge pkg.json'))).toBe(true);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('commandEffect — use step', () => {
+  it('inlines the inner command and interpolates its inputs from the outer scope', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fabster-use-'));
+    try {
+      const writeMarker = command({
+        name: 'write-marker',
+        purpose: 'write a marker file',
+        steps: [run('echo "{content}" > marker.txt')],
+        inputs: { content: string() },
+      });
+
+      const outer = command({
+        name: 'outer',
+        purpose: 'uses write-marker',
+        steps: [use(writeMarker, { content: '{outerValue}' })],
+        inputs: { outerValue: string() },
+      });
+
+      const result = await commandEffect(outer, { outerValue: 'from-outer' }).execute({ cwd });
+
+      expect(result.executed).toBe(true);
+      const written = await readFile(join(cwd, 'marker.txt'), 'utf8');
+      expect(written.trim()).toBe('from-outer');
+      expect(result.logs.some((l) => l.includes('use write-marker'))).toBe(true);
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('fails the outer command when an inlined step fails', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fabster-use-fail-'));
+    try {
+      const failing = command({
+        name: 'failing',
+        purpose: 'always fails',
+        steps: [run('exit 1')],
+        inputs: {},
+      });
+
+      const outer = command({
+        name: 'outer',
+        purpose: 'uses a failing command',
+        steps: [use(failing, {}), run('touch never.txt')],
+        inputs: {},
+      });
+
+      const result = await commandEffect(outer, {}).execute({ cwd });
+
+      expect(result.executed).toBe(false);
+      await expect(readFile(join(cwd, 'never.txt'))).rejects.toThrow();
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects circular use() instead of recursing forever', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'fabster-use-cycle-'));
+    try {
+      // command() freezes its own object but not the steps array passed
+      // in, so a self-reference can be wired up after construction —
+      // the guard is chain-based, so an indirect a -> b -> a cycle is
+      // caught the same way as this direct one.
+      const steps: Parameters<typeof command>[0]['steps'] = [];
+      const a = command({ name: 'a', purpose: 'refers back to itself', steps, inputs: {} });
+      (steps as unknown[]).push(use(a, {}));
+
+      const result = await commandEffect(a, {}).execute({ cwd });
+
+      expect(result.executed).toBe(false);
+      expect(result.advisory).toMatch(/circular use/i);
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

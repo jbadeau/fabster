@@ -10,7 +10,7 @@ export {
 } from './gate.js';
 export { mergeRequest } from './delivery.js';
 export { sandboxProfile } from './sandbox.js';
-export { command, run, jsonMerge } from './command.js';
+export { command, run, jsonMerge, use } from './command.js';
 export { task } from './task.js';
 export { skill, placeholderSkillContent } from './skill.js';
 export { rule, toConformanceRuleOptions } from './rule.js';

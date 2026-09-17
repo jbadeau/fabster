@@ -4,6 +4,7 @@ export { addPlugin } from './commands/add-plugin.js';
 export { generateApp } from './commands/generate-app.js';
 export { generateLibrary } from './commands/generate-library.js';
 export { runTarget } from './commands/run-target.js';
+export { npmInstall } from './commands/npm-install.js';
 
 // Tasks
 export { implementFeature } from './tasks/implement-feature.js';

@@ -19,7 +19,20 @@ export interface JsonMergeStep {
   readonly patch: Readonly<Record<string, unknown>>;
 }
 
-export type Step = RunStep | JsonMergeStep;
+/**
+ * Inline another command's steps into this one — composition of behavior,
+ * not of verification. The inlined command's own `pre`/`post` gates never
+ * run: one node keeps exactly one verification boundary, the enclosing
+ * command's own gates are the whole contract. An author who wants a
+ * specific inner check back declares it explicitly in the outer `post`.
+ */
+export interface UseStep {
+  readonly _tag: 'use';
+  readonly command: CommandDefinition;
+  readonly inputs: Readonly<Record<string, string | number | boolean>>;
+}
+
+export type Step = RunStep | JsonMergeStep | UseStep;
 
 export interface CommandDefinition<I extends IOSchema = IOSchema, O extends IOSchema = IOSchema> {
   readonly kind: 'command';
