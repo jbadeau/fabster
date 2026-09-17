@@ -23,14 +23,26 @@ let nonoEnabled = false;
  * Sets the sandbox permissions for all subsequent process spawns.
  */
 export async function enterSandbox(permissions: Permissions | undefined, policy: SandboxPolicy): Promise<void> {
+  currentPermissions = permissions;
+
+  // 'disabled' is a true opt-out: nono never engages, even if it happens to
+  // be installed. Without this early return, `nonoEnabled` was set purely
+  // from availability — a caller that explicitly asked to skip the sandbox
+  // still got wrapped in it on any machine that has nono installed, since
+  // `policy` was only ever consulted for the throw below, never for
+  // whether to actually turn the sandbox on.
+  if (policy === 'disabled') {
+    nonoEnabled = false;
+    return;
+  }
+
   const available = await isNonoAvailable();
-  if (!available && policy === 'required') {
+  if (!available) {
     throw new Error(
       'Sandbox required: install nono, or explicitly pass sandbox: "disabled" for trusted local work.',
     );
   }
-  currentPermissions = permissions;
-  nonoEnabled = available;
+  nonoEnabled = true;
 }
 
 /**

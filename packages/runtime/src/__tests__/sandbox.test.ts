@@ -13,12 +13,27 @@ describe('enterSandbox', () => {
     expect(isSandboxActive()).toBe(false);
   });
 
-  it('allows an explicit "disabled" opt-out for trusted local work', async () => {
+  it('a "disabled" opt-out never engages the sandbox, even when nono is installed', async () => {
+    // Regression test: the first implementation set nonoEnabled purely from
+    // isNonoAvailable(), consulting `policy` only for the throw-if-missing
+    // check below — so an explicit 'disabled' opt-out was silently ignored
+    // on any machine that happened to have nono installed, and the run got
+    // sandboxed anyway. 'disabled' must mean "never," independent of
+    // availability.
     await enterSandbox({ fs: { read: ['/repo/**'], write: [] } }, 'disabled');
     try {
-      // Never claims to be active when nono itself isn't present, even
-      // though the policy permitted proceeding.
-      expect(isSandboxActive()).toBe(await isNonoAvailable());
+      expect(isSandboxActive()).toBe(false);
+    } finally {
+      exitSandbox();
+    }
+  });
+
+  it('a "required" sandbox engages when nono is available', async () => {
+    if (!(await isNonoAvailable())) return; // not installed in this environment
+
+    await enterSandbox({ fs: { read: ['/repo/**'], write: [] } }, 'required');
+    try {
+      expect(isSandboxActive()).toBe(true);
     } finally {
       exitSandbox();
     }
