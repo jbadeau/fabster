@@ -83,7 +83,7 @@ export async function runWorkflow(
       const resolvedInputs = resolveInputs(node.inputs, nodeOutputs);
       const outcome = await runNode({
         node, resolvedInputs, repoCwd, runBranch,
-        agents: options.agents, emit,
+        agents: options.agents, sandbox: options.sandbox ?? 'required', emit,
       });
       results.push(outcome.result);
       nodeOutputs.set(node.id, outcome.outputs);

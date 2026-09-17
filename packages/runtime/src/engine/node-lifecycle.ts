@@ -6,7 +6,7 @@ import { addWorktree, commitChanges, removeWorktree } from '../git/branch.js';
 import { runGates } from '../gates/gate-checker.js';
 import { checkEntryGates } from '../gates/entry-gates.js';
 import { readNodeOutputs } from './outputs.js';
-import { enterSandbox, exitSandbox } from './sandbox.js';
+import { enterSandbox, exitSandbox, type SandboxPolicy } from './sandbox.js';
 
 export type NodeOutputs = Record<string, string | number | boolean>;
 
@@ -37,6 +37,7 @@ export interface NodeRunParams {
   readonly repoCwd: string;
   readonly runBranch: string;
   readonly agents: readonly AgentDefinition[];
+  readonly sandbox: SandboxPolicy;
   readonly emit?: (event: WorkflowEvent) => void;
 }
 
@@ -53,7 +54,7 @@ export interface NodeRunOutcome {
  * engine's seal that verification passed.
  */
 export async function runNode(params: NodeRunParams): Promise<NodeRunOutcome> {
-  const { node, resolvedInputs, repoCwd, runBranch, agents, emit } = params;
+  const { node, resolvedInputs, repoCwd, runBranch, agents, sandbox, emit } = params;
   const startTime = Date.now();
   const def = node.definition;
   const logs: string[] = [];
@@ -140,7 +141,7 @@ export async function runNode(params: NodeRunParams): Promise<NodeRunOutcome> {
 
       // Enter sandbox — all child processes spawned by the effect are
       // wrapped with nono using the node's declared permissions
-      await enterSandbox(def.permissions);
+      await enterSandbox(def.permissions, sandbox);
 
       const execResult = await executeNode(
         node,

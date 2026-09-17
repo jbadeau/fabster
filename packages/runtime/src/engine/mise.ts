@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { safeEnv } from './safe-env.js';
 
 function nativeExec(
   command: string,
@@ -39,7 +40,7 @@ const SYSTEM_PATHS = [
 ];
 
 function nativeEnv(): Record<string, string> {
-  const env = { ...process.env } as Record<string, string>;
+  const env = safeEnv();
   const path = env['PATH'] ?? '';
   const parts = path.split(':').filter(Boolean);
 

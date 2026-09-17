@@ -6,6 +6,7 @@ import type {
   InputValue,
   TaskDefinition,
 } from '@fabster/core';
+import type { SandboxPolicy } from './engine/sandbox.js';
 
 export type NodeState =
   | 'pending'
@@ -40,6 +41,8 @@ export interface RunOptions {
   readonly ui?: boolean;
   readonly dryRun?: boolean;
   readonly emitter?: WorkflowEmitter;
+  /** Defaults to 'required' — a missing nono fails the run rather than executing unsandboxed. */
+  readonly sandbox?: SandboxPolicy;
 }
 
 export interface RunResult {

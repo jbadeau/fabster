@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import type { ExternalAgentDefinition, TaskDefinition } from '@fabster/core';
 import { isSandboxActive, sandboxWrap } from '../engine/sandbox.js';
+import { safeEnv } from '../engine/safe-env.js';
 import type { Effect, EffectContext, EffectResult } from './types.js';
 
 export function buildPrompt(
@@ -95,7 +96,7 @@ export function externalAgentEffect(
         const child = spawn(spawnCommand, spawnArgs, {
           cwd: ctx.cwd,
           stdio: ['pipe', 'pipe', 'pipe'],
-          env: process.env,
+          env: safeEnv(),
         });
 
         let settled = false;

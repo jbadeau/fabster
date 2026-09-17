@@ -2,6 +2,15 @@ import type { Permissions } from '@fabster/core';
 import { isNonoAvailable, wrapWithNono } from './nono.js';
 
 /**
+ * Whether a run requires nono to actually be present. 'required' (the
+ * default) fails the run loudly when nono is missing, rather than the
+ * previous behavior of silently executing every node unsandboxed. Only a
+ * caller that explicitly opts into 'disabled' (trusted local dev, a demo
+ * with no untrusted input) gets that fallback.
+ */
+export type SandboxPolicy = 'required' | 'disabled';
+
+/**
  * Per-node sandbox state, set by the runner before executing each node.
  * Effects (miseExec, the external-agent effect) read this to wrap their
  * processes with nono. Commands and tasks are unaware of sandboxing.
@@ -13,9 +22,15 @@ let nonoEnabled = false;
  * Called by the runner before executing a node.
  * Sets the sandbox permissions for all subsequent process spawns.
  */
-export async function enterSandbox(permissions?: Permissions): Promise<void> {
+export async function enterSandbox(permissions: Permissions | undefined, policy: SandboxPolicy): Promise<void> {
+  const available = await isNonoAvailable();
+  if (!available && policy === 'required') {
+    throw new Error(
+      'Sandbox required: install nono, or explicitly pass sandbox: "disabled" for trusted local work.',
+    );
+  }
   currentPermissions = permissions;
-  nonoEnabled = await isNonoAvailable();
+  nonoEnabled = available;
 }
 
 /**

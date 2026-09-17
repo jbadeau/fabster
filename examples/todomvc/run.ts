@@ -39,7 +39,9 @@ if (!existsSync(repo)) {
 const { runWorkflow } = await import('@fabster/runtime');
 const { default: workflow, agents } = await import('./workflow.ts');
 
-const result = await runWorkflow(workflow, { agents });
+// This demo has no untrusted input and nono is not part of its setup —
+// an explicit, deliberate opt-out, not the default for real workflows.
+const result = await runWorkflow(workflow, { agents, sandbox: 'disabled' });
 
 console.log(`\nWorkflow "${result.workflow}" ${result.status}`);
 if (result.mr) console.log(`  MR: ${result.mr}`);
