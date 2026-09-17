@@ -18,6 +18,7 @@ export {
   ensureInitialCommit,
 } from './git/branch.js';
 export { createMR } from './git/mr.js';
+export type { SandboxPolicy } from './engine/sandbox.js';
 
 // Types
 export type {

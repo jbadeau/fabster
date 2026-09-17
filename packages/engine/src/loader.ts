@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { AgentDefinition, WorkflowDefinition } from '@fabster/core';
+import type { SandboxPolicy } from '@fabster/runtime';
 
 /**
  * A serializable reference to a workflow: definitions contain functions and
@@ -12,6 +13,15 @@ export interface WorkflowRef {
   readonly workflowExport?: string;
   readonly agentsExport?: string;
   readonly args?: unknown;
+  /**
+   * Defaults to 'required' in fabrication.ts — the production engine has no
+   * implicit trusted-local-demo carve-out. The override exists so tests can
+   * exercise fabrication's own logic (the node loop, skip-on-failure
+   * propagation, delivery gating) without depending on nono being
+   * installed in whatever environment runs the test suite; a real
+   * dispatched run should never set this.
+   */
+  readonly sandbox?: SandboxPolicy;
 }
 
 export interface LoadedWorkflow {
