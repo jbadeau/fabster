@@ -111,6 +111,12 @@ export async function runNode(params: NodeRunParams): Promise<NodeRunOutcome> {
   }
 
   const maxRetries = def.kind === 'task' ? (def.retries ?? 0) : 0;
+  // Every attempt's failure, not just the most recent — an agent that only
+  // sees "attempt 2 failed X" can swing back to whatever attempt 1 already
+  // tried and failed at, since it never sees that history. Joined into one
+  // string for the prompt; the wire type (EffectContext.retryEvidence)
+  // stays a plain string either way.
+  const retryHistory: string[] = [];
   let retryEvidence: string | undefined;
 
   for (let attempt = 0; ; attempt++) {
@@ -181,11 +187,12 @@ export async function runNode(params: NodeRunParams): Promise<NodeRunOutcome> {
         // Retry applies to tasks only: a command is deterministic, so
         // re-running it on the same inputs cannot change the outcome.
         if (attempt < maxRetries) {
-          retryEvidence = [
+          retryHistory.push([
             `Attempt ${attempt + 1} of ${maxRetries} failed.`,
             'Post-gate failures:',
             ...failedGates.map((g) => `- ${g.gate.kind}: ${g.detail ?? 'failed'}`),
-          ].join('\n');
+          ].join('\n'));
+          retryEvidence = retryHistory.join('\n\n');
 
           emit?.({
             type: 'node:retry',

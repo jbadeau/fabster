@@ -100,7 +100,11 @@ async function runSteps(
 
     if (result.exitCode !== 0) {
       log(`x exit ${result.exitCode}`);
-      if (result.stderr) log(`stderr: ${result.stderr.slice(0, 500)}`);
+      // nono's own denial report (which paths were blocked, and the exact
+      // fix flags) lands well past 500 chars — a truncated capture here
+      // means diagnosing a real sandbox denial requires reproducing it by
+      // hand instead of just reading the log.
+      if (result.stderr) log(`stderr: ${result.stderr.slice(0, 4000)}`);
       return `exit ${result.exitCode}`;
     }
     log(`+ done`);

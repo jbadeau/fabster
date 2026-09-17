@@ -50,7 +50,7 @@ export function buildPrompt(
     `- Report the files changed and verification results.`,
     ...(retryEvidence ? [
       '',
-      `## Previous Attempt Failed`,
+      `## Previous Attempts`,
       retryEvidence,
       '',
       `Fix the issues above and try again.`,
