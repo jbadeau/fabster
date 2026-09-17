@@ -39,7 +39,8 @@ export async function enterSandbox(permissions: Permissions | undefined, policy:
   const available = await isNonoAvailable();
   if (!available) {
     throw new Error(
-      'Sandbox required: install nono, or explicitly pass sandbox: "disabled" for trusted local work.',
+      'Sandbox required: nono is not installed. Install it with `mise use -g nono@latest` ' +
+        '(source: github:nolabs-ai/nono), or explicitly pass sandbox: "disabled" for trusted local work.',
     );
   }
   nonoEnabled = true;

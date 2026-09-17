@@ -131,30 +131,38 @@ function fileAction(opts: {
   };
 }
 
-function miseAction(cwd: string): () => Promise<InitAction> {
+/** Build an action that ensures a `tool = "latest"` line exists in mise.toml's [tools] block. */
+function miseToolAction(opts: {
+  cwd: string;
+  tool: string;
+  title: string;
+}): () => Promise<InitAction> {
   const rel = 'mise.toml';
-  const file = path.join(cwd, rel);
+  const file = path.join(opts.cwd, rel);
+  const line = `${opts.tool} = "latest"`;
   return async () => {
     const existing = await readText(file);
-    const hasNode = existing?.match(/^\s*node\s*=/m) != null;
-    const status: InitStatus = hasNode ? 'skip' : existing ? 'update' : 'create';
+    const hasTool = existing?.match(new RegExp(`^\\s*${opts.tool}\\s*=`, 'm')) != null;
+    const status: InitStatus = hasTool ? 'skip' : existing ? 'update' : 'create';
     return {
       group: 'Tools',
-      title: 'mise (node)',
+      title: opts.title,
       target: rel,
       status,
+      // Re-read at apply time, not the plan-time `existing` snapshot — two
+      // miseToolAction()s target the same file, so the second one applying
+      // must see the first one's just-written line, not overwrite it.
       apply: async () => {
-        if (existing == null) {
-          await writeFile(file, '[tools]\nnode = "latest"\n');
+        const current = await readText(file);
+        if (current == null) {
+          await writeFile(file, `[tools]\n${line}\n`);
           return;
         }
-        if (existing.includes('[tools]')) {
-          await writeFile(
-            file,
-            existing.replace(/\[tools\]\s*\n/, '[tools]\nnode = "latest"\n'),
-          );
+        if (current.match(new RegExp(`^\\s*${opts.tool}\\s*=`, 'm'))) return;
+        if (current.includes('[tools]')) {
+          await writeFile(file, current.replace(/\[tools\]\s*\n/, `[tools]\n${line}\n`));
         } else {
-          await writeFile(file, `[tools]\nnode = "latest"\n\n${existing.trimStart()}`);
+          await writeFile(file, `[tools]\n${line}\n\n${current.trimStart()}`);
         }
       },
     };
@@ -261,7 +269,12 @@ export async function planInit(cwd: string = process.cwd()): Promise<InitAction[
       content: DEFAULT_CLAUDE_MD,
       createOnly: true,
     }),
-    miseAction(cwd),
+    miseToolAction({ cwd, tool: 'node', title: 'mise (node)' }),
+    miseToolAction({
+      cwd,
+      tool: 'nono',
+      title: 'mise (nono — required for sandboxed workflow runs)',
+    }),
   );
 
   return Promise.all(factories.map((f) => f()));
